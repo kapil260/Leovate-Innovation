@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recall AI — Create Account</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="signup.css">
+</head>
+<body>
+
+<div class="signup-recall-ai">
+
+  <!-- Background layers -->
+  <div class="bg-layer">
+    <div class="bg-gradient"></div>
+    <div class="bg-blob-1"></div>
+    <div class="bg-blob-2"></div>
+  </div>
+
+  <!-- Toast notification -->
+  <div class="toast" id="toast" role="alert" aria-live="polite">
+    <span class="toast-icon" id="toastIcon">✓</span>
+    <span class="toast-msg" id="toastMsg"></span>
+  </div>
+
+  <!-- Main content -->
+  <main class="main-content-canvas">
+    <div class="container">
+
+      <!-- LEFT — editorial authority section -->
+      <section class="left-side">
+        <div class="brand">
+          <div class="brand-icon">⬡</div>
+          <span class="brand-name">Recall AI</span>
+        </div>
+
+        <h1 class="heading-1">
+          <span class="line-light">Interface</span>
+          <span class="line-grad">with Infinite.</span>
+        </h1>
+
+        <p class="subtext">
+          Step into the Cognitive Ether. Our neural architecture
+          bridges the gap between raw data and sentient insight.
+        </p>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-val teal">99.4%</div>
+            <div class="stat-label">Neural Accuracy</div>
+          </div>
+          <div class="stat">
+            <div class="stat-val blue">2.4ms</div>
+            <div class="stat-label">Latent Sync</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT — glass card -->
+      <div class="right-side">
+        <div class="glass-card">
+
+          <div class="card-header">
+            <h2 class="card-title">Create Account</h2>
+            <p class="card-sub">Join the next evolution of cognitive computing.</p>
+          </div>
+
+          <div class="form" id="signupForm">
+
+            <!-- Name -->
+            <div class="field">
+              <label class="field-label" for="name">Name</label>
+              <div class="field-input-wrap">
+                <input
+                  class="field-input"
+                  type="text"
+                  id="name"
+                  name="name"
+                  placeholder="Kapil Singh"
+                  autocomplete="name"
+                />
+              </div>
+              <span class="field-error" id="nameError" role="alert"></span>
+            </div>
+
+            <!-- Email -->
+            <div class="field">
+              <label class="field-label" for="email">Email Address</label>
+              <div class="field-input-wrap">
+                <input
+                  class="field-input"
+                  type="email"
+                  id="email"
+                  name="email"
+                  placeholder="you@example.com"
+                  autocomplete="email"
+                />
+              </div>
+              <span class="field-error" id="emailError" role="alert"></span>
+            </div>
+
+            <!-- Password -->
+            <div class="field">
+              <label class="field-label" for="password">Security Key</label>
+              <div class="field-input-wrap pw-wrap">
+                <input
+                  class="field-input"
+                  type="password"
+                  id="password"
+                  name="password"
+                  placeholder="••••••••"
+                  autocomplete="new-password"
+                />
+                <button class="pw-toggle" type="button" id="pwToggle" aria-label="Toggle password visibility">
+                  <svg id="eyeIcon" class="eye-svg" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                </button>
+              </div>
+              <span class="field-error" id="passwordError" role="alert"></span>
+            </div>
+
+            <!-- Submit button -->
+            <button class="btn-submit" type="button" id="submitBtn">
+              <span class="btn-text">Create Account</span>
+              <div class="spinner"></div>
+            </button>
+
+          </div>
+
+          <div class="sign-in-row">
+            <span class="sign-in-text">Already registered?</span>
+            <span class="sign-in-link" id="signInLink" role="button" tabindex="0">Sign In</span>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="page-footer">
+    <div class="footer-left">
+      <span class="footer-text">V1.0.0 Ether Core</span>
+      <span class="footer-text" id="latencyDisplay">Latency: —</span>
+    </div>
+    <div class="footer-right">
+      <span class="footer-link">Privacy Neural Protocol</span>
+      <span class="footer-link">Terms of Synapse</span>
+    </div>
+  </footer>
+
+</div>
+
+<script src="signup.js"></script>
+</body>
+</html>
