@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="dashbaord.css">
+  <style>
+    a,
+    button,
+    input,
+    select,
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        border: none;
+        text-decoration: none;
+        background: none;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    menu, ol, ul {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+    }
+  </style>
+  <title>Dashboard — Recall AI</title>
+</head>
+<body>
+
+  <div class="dashboard-recall-ai">
+
+    <!-- ── MAIN CANVAS ── -->
+    <div class="main-canvas">
+
+      <!-- Top App Bar -->
+      <div class="header-top-app-bar">
+        <div class="container">
+          <div class="heading-2">
+            <div class="text">Neural Workspace</div>
+          </div>
+          <div class="overlay-border">
+            <svg class="search-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <div class="input">
+              <div class="container3">
+                <input class="search-input" type="text" placeholder="Search neural history…" id="searchInput" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="container4">
+          <button class="button" id="notifBtn" aria-label="Notifications">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+          </button>
+          <div class="vertical-divider"></div>
+          <div class="container6">
+            <div class="container7">
+              <div class="container8">
+                <div class="current-status">Current Status</div>
+              </div>
+              <div class="container8">
+                <div class="text2">Active</div>
+              </div>
+            </div>
+            <div class="status-dot"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section -->
+      <div class="section">
+
+        <!-- Weekly Insights Banner -->
+        <div class="weekly-insights-banner">
+          <div class="overlay-blur"></div>
+          <div class="container9">
+            <div class="container10">
+              <div class="overlay">
+                <div class="text3">WEEKLY INSIGHTS</div>
+              </div>
+              <div class="heading-3">
+                <div class="text4">
+                  Your cognitive synthesis increased by 24%
+                  <br />
+                  this week.
+                </div>
+              </div>
+              <div class="container11">
+                <div class="insight-subtext">
+                  We've identified 3 recurring patterns in your search
+                  queries that could optimize your workflow.
+                </div>
+              </div>
+            </div>
+            <button class="button2" id="viewAnalysisBtn">
+              <div class="button-shadow"></div>
+              <div class="text5">View Analysis</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Dashboard Content Grid -->
+        <div class="dashboard-content-layout-editorial-asymmetry">
+
+          <!-- LEFT COLUMN — Recent Activity -->
+          <div class="left-column-activity-filters">
+            <div class="container12">
+              <div class="heading-4">
+                <div class="recent-activity">RECENT ACTIVITY</div>
+              </div>
+              <div class="activity-list">
+
+                <!-- Activity Item 1 — active -->
+                <div class="container13">
+                  <div class="activity-bar gradient"></div>
+                  <div class="container11">
+                    <div class="container11">
+                      <div class="what-is-ai">What is AI?</div>
+                    </div>
+                    <div class="container11">
+                      <div class="about-ai-full-explain">About AI full explain</div>
+                    </div>
+                    <div class="container14">
+                      <div class="text6">2 HOURS AGO</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Activity Item 2 -->
+                <div class="container13">
+                  <div class="activity-bar background2"></div>
+                  <div class="container11">
+                    <div class="container11">
+                      <div class="text7">Context Exported</div>
+                    </div>
+                    <div class="container11">
+                      <div class="quantum-computing-project-pdf">
+                        "Quantum Computing Project" → PDF
+                      </div>
+                    </div>
+                    <div class="container14">
+                      <div class="text6">5 HOURS AGO</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Activity Item 3 -->
+                <div class="container13">
+                  <div class="activity-bar background2"></div>
+                  <div class="container11">
+                    <div class="container11">
+                      <div class="text7">New Node Created</div>
+                    </div>
+                    <div class="container11">
+                      <div class="brainstorming-session-future-ui">
+                        Brainstorming session: Future UI
+                      </div>
+                    </div>
+                    <div class="container14">
+                      <div class="text6">YESTERDAY</div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+            <div class="horizontal-border"></div>
+          </div>
+
+          <!-- RIGHT COLUMN — Neural History -->
+          <div class="right-column-chat-history">
+
+            <!-- Header row -->
+            <div class="container9">
+              <div class="heading-42">
+                <div class="text8">Neural History</div>
+              </div>
+              <div class="container15">
+                <div class="background-border">
+                  <button class="button3 filter-btn active-filter" data-filter="all">
+                    <div class="text9">All</div>
+                  </button>
+                  <button class="button4 filter-btn" data-filter="date">
+                    <div class="text10">By Date</div>
+                  </button>
+                  <button class="button4 filter-btn" data-filter="keyword">
+                    <div class="text10">Keyword</div>
+                  </button>
+                </div>
+                <button class="button5" id="exportBtn" aria-label="Export">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- History Cards Grid -->
+            <div class="container17" id="historyGrid">
+
+              <!-- Card 1 -->
+              <div class="history-card history-card-1" data-id="1">
+                <div class="container18">
+                  <div class="overlay2">
+                    <svg width="18" height="18" fill="none" stroke="rgba(159,167,255,0.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                      <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+                    </svg>
+                  </div>
+                  <div class="text11">MAY 24 • 14:20</div>
+                </div>
+                <div class="heading-6">
+                  <div class="card-title-text">Refactoring React Hooks</div>
+                </div>
+                <div class="container20">
+                  <div class="card-preview-text">
+                    "How do I optimize a useEffect hook
+                    <br />that depends on a complex object…
+                  </div>
+                </div>
+                <div class="horizontal-border2">
+                  <div class="container21">
+                    <div class="avatar-dot" style="background:#6366f1"></div>
+                    <div class="avatar-overlap">
+                      <div class="avatar-dot" style="background:#06b6d4"></div>
+                    </div>
+                  </div>
+                  <button class="card-action-btn" aria-label="Open">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                      <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Card 2 -->
+              <div class="history-card history-card-2" data-id="2">
+                <div class="container23">
+                  <div class="overlay3">
+                    <svg width="18" height="18" fill="none" stroke="rgba(190,131,250,0.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                      <circle cx="13.5" cy="6.5" r="0.5"/><circle cx="17.5" cy="10.5" r="0.5"/>
+                      <circle cx="8.5" cy="7.5" r="0.5"/><circle cx="6.5" cy="12.5" r="0.5"/>
+                      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+                    </svg>
+                  </div>
+                  <div class="text11">MAY 23 • 09:15</div>
+                </div>
+                <div class="heading-6">
+                  <div class="card-title-text">Color Palette Synthesis</div>
+                </div>
+                <div class="container20">
+                  <div class="card-preview-text">
+                    "Generate a futuristic dark mode
+                    <br />palette using deep navy and electri…
+                  </div>
+                </div>
+                <div class="horizontal-border2">
+                  <div class="container21">
+                    <div class="avatar-dot" style="background:#a855f7"></div>
+                  </div>
+                  <button class="card-action-btn" aria-label="Open">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                      <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Card 3 -->
+              <div class="history-card history-card-3" data-id="3">
+                <div class="container23">
+                  <div class="overlay4">
+                    <svg width="18" height="18" fill="none" stroke="rgba(198,255,243,0.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                    </svg>
+                  </div>
+                  <div class="text11">MAY 21 • 18:45</div>
+                </div>
+                <div class="heading-6">
+                  <div class="card-title-text">Quantum State Logic</div>
+                </div>
+                <div class="container20">
+                  <div class="card-preview-text">
+                    "Explain the concept of
+                    <br />superposition in quantum…
+                  </div>
+                </div>
+                <div class="horizontal-border2">
+                  <div class="container21">
+                    <div class="avatar-dot" style="background:#10b981"></div>
+                    <div class="avatar-overlap">
+                      <div class="avatar-dot" style="background:#64748b"></div>
+                    </div>
+                  </div>
+                  <button class="card-action-btn" aria-label="Open">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                      <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Card 4 -->
+              <div class="history-card history-card-4" data-id="4">
+                <div class="container28">
+                  <div class="overlay2">
+                    <svg width="18" height="18" fill="none" stroke="rgba(159,167,255,0.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                      <polyline points="14 2 14 8 20 8"/>
+                      <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                      <polyline points="10 9 9 9 8 9"/>
+                    </svg>
+                  </div>
+                  <div class="text11">MAY 20 • 11:30</div>
+                </div>
+                <div class="heading-6">
+                  <div class="card-title-text">Editorial Content Plan</div>
+                </div>
+                <div class="container20">
+                  <div class="card-preview-text">
+                    "Create a 4-week content calendar
+                    <br />for a design agency specializing in…
+                  </div>
+                </div>
+                <div class="horizontal-border2">
+                  <div class="container21">
+                    <div class="avatar-dot" style="background:#3b82f6"></div>
+                  </div>
+                  <button class="card-action-btn" aria-label="Open">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                      <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Load More -->
+            <div class="container31">
+              <button class="button6" id="loadMoreBtn">
+                <div class="load-more-history">Load More History</div>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SIDEBAR ── -->
+    <aside class="aside-side-nav-bar">
+
+      <!-- Brand -->
+      <div class="margin2">
+        <div class="container32">
+          <img class="background3" src="background3.png" alt="Recall AI Logo" />
+          <div class="container33">
+            <div class="heading-1">
+              <div class="recall-ai">Recall AI</div>
+            </div>
+            <div class="container11">
+              <div class="text12">COGNITIVE ETHER V1.0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nav -->
+      <nav class="nav">
+        <div class="link-active-tab-dashboard-css-transform">
+          <a class="link-active-tab-dashboard nav-link" href="dashboard.html" data-page="dashboard">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+            </svg>
+            <div class="container7">
+              <div class="text13">DASHBOARD</div>
+            </div>
+          </a>
+        </div>
+        <a class="link nav-link" href="history.html" data-page="history">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <polyline points="12 8 12 12 14 14"/>
+            <path d="M3.05 11a9 9 0 1 1 .5 4m-.5 5v-5h5"/>
+          </svg>
+          <div class="container7">
+            <div class="text14">HISTORY</div>
+          </div>
+        </a>
+        <a class="link nav-link" href="settings.html" data-page="settings">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          <div class="container7">
+            <div class="text14">SETTINGS</div>
+          </div>
+        </a>
+      </nav>
+
+      <!-- User profile -->
+      <div class="margin3">
+        <div class="background-border8">
+          <div class="container37">
+            <img class="user-avatar" src="user-avatar0.png" alt="User Avatar" />
+            <div class="container7">
+              <div class="container11">
+                <div class="ronik-thapa" id="userName">Ronik Thapa</div>
+              </div>
+              <div class="user-role">Neural Architect</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- FAB -->
+    <button class="button-fab-for-main-screen" id="fabBtn" aria-label="New session">
+      <div class="button-fab-for-main-screen-shadow"></div>
+      <svg width="24" height="24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+    </button>
+
+    <!-- Toast -->
+    <div class="toast" id="toast" role="alert">
+      <span class="toast-icon" id="toastIcon">✓</span>
+      <span class="toast-msg" id="toastMsg"></span>
+    </div>
+
+  </div>
+
+  <script src="dashbaord.js"></script>
+</body>
+</html>
