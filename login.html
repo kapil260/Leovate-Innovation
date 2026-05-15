@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="login.css">
+  <style>
+    a,
+    button,
+    input,
+    select,
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        border: none;
+        text-decoration: none;
+        background: none;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    menu, ol, ul {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+    }
+  </style>
+  <title>Login — Recall AI</title>
+</head>
+<body>
+
+  <div class="login-recall-ai">
+
+    <!-- Background -->
+    <div class="ambient-cognitive-ether-background">
+      <div class="overlay-blur"></div>
+      <div class="overlay-blur2"></div>
+      <div class="gradient"></div>
+    </div>
+
+    <!-- Watermark decoration -->
+    <div class="global-decoration">
+      <div class="text-watermark">MT</div>
+    </div>
+
+    <!-- Main content canvas -->
+    <div class="main-content-canvas">
+      <div class="main-container">
+
+        <!-- Left side -->
+       <div class="left-side">
+       <div class="group-brand">
+         <img src="background0.png" alt="Recall AI Logo" class="brand-logo">
+          <span class="brand-name">Recall AI</span>
+        </div>
+          <div class="heading-block">
+            <div class="heading-1">
+              <span class="heading-span-light">Interface with <br />the </span><span class="heading-span-grad">Infinite.</span>
+            </div>
+          </div>
+
+          <div class="subtext-block">
+            <div class="subtext">
+              Re-establish your neural link.
+              <br />
+              Your cognitive session awaits.
+            </div>
+          </div>
+
+          <div class="stats-block">
+            <div class="horizontal-border">
+              <div class="stat">
+                <div class="stat-val-teal">99.4%</div>
+                <div class="stat-label">NEURAL ACCURACY</div>
+              </div>
+              <div class="stat">
+                <div class="stat-val-blue">24ms</div>
+                <div class="stat-label">LATENT SYNC</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right side — glass card -->
+        <div class="right-side">
+          <div class="glass-card">
+            <div class="subtle-ghost-border"></div>
+            <div class="ambient-glow-internal"></div>
+
+            <div class="card-inner">
+
+              <div class="card-header">
+                <div class="heading-2">
+                  <div class="card-title">Welcome Back</div>
+                </div>
+                <div class="card-subtitle">
+                  Re-enter the cognitive stream.
+                </div>
+              </div>
+
+              <div class="form" id="loginForm">
+
+                <!-- Email -->
+                <div class="input-field-email">
+                  <div class="label">
+                    <div class="label-text">EMAIL ADDRESS</div>
+                  </div>
+                  <div class="input">
+                    <div class="input-inner">
+                      <input
+                        class="input-el"
+                        type="email"
+                        id="email"
+                        name="email"
+                        placeholder="you@example.com"
+                        autocomplete="email"
+                      />
+                    </div>
+                  </div>
+                  <div class="field-error" id="emailError"></div>
+                </div>
+
+                <!-- Password -->
+                <div class="input-field-password">
+                  <div class="label">
+                    <div class="label-text">SECURITY KEY</div>
+                  </div>
+                  <div class="input pw-wrap">
+                    <div class="input-inner">
+                      <input
+                        class="input-el"
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="••••••••"
+                        autocomplete="current-password"
+                      />
+                    </div>
+                    <button class="pw-toggle" type="button" id="pwToggle" aria-label="Toggle password visibility">
+                      <svg id="eyeIcon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="field-error" id="passwordError"></div>
+                </div>
+
+                <!-- Forgot password -->
+                <div class="forgot-row">
+                  <div class="forgot-link" id="forgotLink">Forgot Security Key?</div>
+                </div>
+
+                <!-- Submit -->
+                <div class="button" id="submitBtn">
+                  <div class="button-text">Sign In</div>
+                  <div class="spinner" id="spinner"></div>
+                </div>
+
+              </div>
+
+              <div class="paragraph">
+                <div class="no-account-text">No account?</div>
+                <div class="link-sign-up" id="signUpLink">Create Account</div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast" role="alert">
+      <span class="toast-icon" id="toastIcon">✓</span>
+      <span class="toast-msg" id="toastMsg"></span>
+    </div>
+
+    <!-- Footer -->
+    <div class="container">
+      <div class="container2">
+        <div class="text2">© 2024 MINDTRACE LABS</div>
+      </div>
+      <div class="horizontal-divider"></div>
+      <div class="container2">
+        <div class="text2">SECURE NODE PROTOCOL</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="login.js"></script>
+</body>
+</html>
