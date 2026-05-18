@@ -114,7 +114,9 @@
                   placeholder="••••••••"
                   autocomplete="new-password"
                 />
+                 
                 <button class="pw-toggle" type="button" id="pwToggle" aria-label="Toggle password visibility">
+                  <a href="dashboard.html"></a>
                   <svg id="eyeIcon" class="eye-svg" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                     <circle cx="12" cy="12" r="3"/>
@@ -125,8 +127,11 @@
             </div>
 
             <!-- Submit button -->
-            <button class="btn-submit" type="button" id="submitBtn">
+            <button class="btn-submit" type="button" id="submitBtn"
+       onclick="window.location.href='../dashboard-page/dashboard.html'">
+
               <span class="btn-text">Create Account</span>
+        
               <div class="spinner"></div>
             </button>
 
@@ -134,7 +139,7 @@
 
           <div class="sign-in-row">
             <span class="sign-in-text">Already registered?</span>
-            <span class="sign-in-link" id="signInLink" role="button" tabindex="0">Login </span>
+            <a href="../login-page/login.html"class="sign-in-link">Login</a>
           </div>
 
         </div>
