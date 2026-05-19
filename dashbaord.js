@@ -19,21 +19,22 @@ const API = {
    DOM REFERENCES
 ───────────────────────────────────────── */
 const dom = {
-  searchInput:   document.getElementById('searchInput'),
-  notifBtn:      document.getElementById('notifBtn'),
-  viewAnalysis:  document.getElementById('viewAnalysisBtn'),
-  filterBtns:    document.querySelectorAll('.filter-btn'),
-  historyGrid:   document.getElementById('historyGrid'),
-  loadMoreBtn:   document.getElementById('loadMoreBtn'),
-  exportBtn:     document.getElementById('exportBtn'),
-  fabBtn:        document.getElementById('fabBtn'),
-  navLinks:      document.querySelectorAll('.nav-link'),
-  cardBtns:      document.querySelectorAll('.card-action-btn'),
-  historyCards:  document.querySelectorAll('.history-card'),
-  activityItems: document.querySelectorAll('.container13'),
-  toast:         document.getElementById('toast'),
-  toastIcon:     document.getElementById('toastIcon'),
-  toastMsg:      document.getElementById('toastMsg'),
+  searchInput:      document.getElementById('searchInput'),
+  notifBtn:         document.getElementById('notifBtn'),
+  viewAnalysis:     document.getElementById('viewAnalysisBtn'),
+  filterBtns:       document.querySelectorAll('.filter-btn'),
+  historyGrid:      document.getElementById('historyGrid'),
+  loadMoreBtn:      document.getElementById('loadMoreBtn'),
+  exportBtn:        document.getElementById('exportBtn'),
+  fabBtn:           document.getElementById('fabBtn'),
+  navLinks:         document.querySelectorAll('.nav-link'),
+  cardBtns:         document.querySelectorAll('.card-action-btn'),
+  historyCards:     document.querySelectorAll('.history-card'),
+  activityItems:    document.querySelectorAll('.container13'),
+  subscriptionLink: document.querySelector('.link-subscription'),
+  toast:            document.getElementById('toast'),
+  toastIcon:        document.getElementById('toastIcon'),
+  toastMsg:         document.getElementById('toastMsg'),
 };
 
 /* ─────────────────────────────────────────
@@ -218,6 +219,21 @@ function handleActivityClick(item) {
 }
 
 /* ─────────────────────────────────────────
+   SUBSCRIPTION
+───────────────────────────────────────── */
+function handleSubscriptionClick(e) {
+  /* Remove active state from all other nav items */
+  document.querySelectorAll('.link-active-tab-dashboard').forEach(function (el) {
+    el.classList.remove('link-active-tab-dashboard');
+    el.classList.add('link');
+  });
+
+  showToast('Opening Subscription…', 'success');
+  // Uncomment to navigate:
+  // window.location.href = '../subscription-page/subscription.html';
+}
+
+/* ─────────────────────────────────────────
    CARD ENTRY ANIMATION
 ───────────────────────────────────────── */
 function animateCardsIn() {
@@ -271,6 +287,11 @@ function init() {
   // Notification button
   if (dom.notifBtn) {
     dom.notifBtn.addEventListener('click', toggleNotifications);
+  }
+
+  // Subscription link
+  if (dom.subscriptionLink) {
+    dom.subscriptionLink.addEventListener('click', handleSubscriptionClick);
   }
 
   // History card open buttons

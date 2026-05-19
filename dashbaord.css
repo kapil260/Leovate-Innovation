@@ -1363,6 +1363,58 @@
   justify-content: flex-start;
 }
 
+/* ─────────────────────────────────────────
+   SUBSCRIPTION NAV ITEM
+───────────────────────────────────────── */
+.link-subscription-css-transform {
+  padding: 0px 0px 0px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-shrink: 0;
+  width: 239px;
+  position: relative;
+}
+
+.link-subscription {
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 12px;
+  border-style: solid;
+  border-color: #818cf8;
+  border-width: 0px 2px 0px 0px;
+  padding: 12px 16px 12px 16px;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  align-items: center;
+  justify-content: flex-start;
+  flex-shrink: 0;
+  position: relative;
+  color: #a5b4fc;
+  transition: opacity 0.2s ease;
+}
+
+.link-subscription:hover {
+  opacity: 0.85;
+}
+
+.text-subscription {
+  color: #a5b4fc;
+  text-align: left;
+  font-family: "Manrope-Regular", "Manrope", sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 1.4px;
+  font-weight: 400;
+  text-transform: uppercase;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
 /* User profile card */
 .margin3 {
   margin-top: auto;
@@ -1575,6 +1627,20 @@
   .link {
     padding: 12px;
     justify-content: center;
+  }
+
+  .link-subscription-css-transform {
+    width: auto;
+    padding-left: 0;
+  }
+
+  .link-subscription {
+    padding: 12px;
+    justify-content: center;
+  }
+
+  .text-subscription {
+    display: none;
   }
 
   .main-canvas {
