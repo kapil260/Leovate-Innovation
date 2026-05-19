@@ -100,7 +100,6 @@ router.post("/signup", async (req, res) => {
   }
 });
 
-
 // ── LOGIN ─────────────────────────────────────────────────────
 // POST /api/auth/login
 // Body: { email, password }
@@ -160,7 +159,6 @@ router.post("/login", async (req, res) => {
     res.status(500).json({ error: "Server error during login." });
   }
 });
-
 
 // ── GET CURRENT USER ──────────────────────────────────────────
 // GET /api/auth/me
