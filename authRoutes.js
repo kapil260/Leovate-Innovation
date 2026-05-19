@@ -42,6 +42,7 @@ router.post("/signup", async (req, res) => {
         error: "Password must be at least 6 characters long."
       });
     }
+    
     // Check if email already exists
     const { data: existing } = await supabase
       .from("profiles")
@@ -98,6 +99,7 @@ router.post("/signup", async (req, res) => {
     res.status(500).json({ error: "Server error during signup." });
   }
 });
+
 
 // ── LOGIN ─────────────────────────────────────────────────────
 // POST /api/auth/login
