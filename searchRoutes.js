@@ -70,3 +70,251 @@ router.post("/save", protect, async (req, res) => {
       })
       .select()
       .single();
+    if (error) {
+      console.error("Save search DB error:", error.message);
+      return res.status(500).json({ error: "Could not save search. Please try again." });
+    }
+
+    res.status(201).json({
+      message: "Search saved with AI tag and summary!",
+      search:  savedSearch
+    });
+
+  } catch (error) {
+    console.error("Save search error:", error.message);
+    res.status(500).json({ error: "Server error while saving search." });
+  }
+});
+
+
+// ── GET ALL SEARCHES ──────────────────────────────────────────
+// GET /api/searches/
+// Protected: YES
+// Query params:
+//   ?q=keyword     — filter by keyword in query or summary
+//   ?tag=Science   — filter by tag
+//   ?source=ChatGPT — filter by source
+//   ?limit=20      — limit number of results (default: all)
+// Returns: { message, count, searches }
+
+router.get("/", protect, async (req, res) => {
+  try {
+    const userId    = req.user.id;
+    const keyword   = req.query.q;
+    const tagFilter = req.query.tag;
+    const source    = req.query.source;
+    const limit     = req.query.limit ? parseInt(req.query.limit) : null;
+
+    // Start building query
+    let query = supabase
+      .from("searches")
+      .select("*")
+      .eq("user_id", userId)
+      .order("timestamp", { ascending: false });
+
+    // Filter by keyword in query text or summary
+    if (keyword) {
+      query = query.or(
+        `query.ilike.%${keyword}%,summary.ilike.%${keyword}%`
+      );
+    }
+
+    // Filter by tag
+    if (tagFilter && tagFilter !== "All") {
+      query = query.eq("tag", tagFilter);
+    }
+
+    // Filter by source
+    if (source) {
+      query = query.eq("source", source);
+    }
+
+    // Limit results if specified
+    if (limit) {
+      query = query.limit(limit);
+    }
+
+    const { data: searches, error } = await query;
+
+    if (error) {
+      console.error("Get searches DB error:", error.message);
+      return res.status(500).json({ error: "Could not fetch searches." });
+    }
+
+    res.status(200).json({
+      message:  "Searches fetched successfully!",
+      count:    searches.length,
+      searches: searches
+    });
+
+  } catch (error) {
+    console.error("Get searches error:", error.message);
+    res.status(500).json({ error: "Server error while fetching searches." });
+  }
+});
+
+
+// ── GET DASHBOARD STATS ───────────────────────────────────────
+// GET /api/searches/stats
+// Protected: YES
+// Returns stats for the dashboard header cards:
+//   totalSearches, thisWeek, sharedCount, topTag
+
+router.get("/stats", protect, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Get all searches for this user
+    const { data: searches, error } = await supabase
+      .from("searches")
+      .select("id, tag, timestamp, is_shared")
+      .eq("user_id", userId);
+
+    if (error) {
+      return res.status(500).json({ error: "Could not fetch stats." });
+    }
+
+    // Calculate stats
+    const total = searches.length;
+
+    // Count searches from the last 7 days
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const thisWeek = searches.filter(s =>
+      new Date(s.timestamp) >= weekAgo
+    ).length;
+
+    // Count shared searches
+    const sharedCount = searches.filter(s => s.is_shared).length;
+
+    // Find the most used tag
+    const tagCounts = {};
+    searches.forEach(s => {
+      tagCounts[s.tag] = (tagCounts[s.tag] || 0) + 1;
+    });
+    const topTag = Object.keys(tagCounts).sort(
+      (a, b) => tagCounts[b] - tagCounts[a]
+    )[0] || "None";
+
+    res.status(200).json({
+      stats: {
+        totalSearches: total,
+        thisWeek:      thisWeek,
+        sharedCount:   sharedCount,
+        topTag:        topTag,
+        tagBreakdown:  tagCounts
+      }
+    });
+
+  } catch (error) {
+    console.error("Stats error:", error.message);
+    res.status(500).json({ error: "Server error while fetching stats." });
+  }
+});
+
+
+// ── GET AI WEEKLY INSIGHT ─────────────────────────────────────
+// GET /api/searches/insight
+// Protected: YES
+// Returns: { insight } — an AI-generated sentence about this week's searches
+// Powers the "Weekly Insights" banner on the dashboard
+
+router.get("/insight", protect, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Get searches from the last 7 days
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    const { data: weekSearches, error } = await supabase
+      .from("searches")
+      .select("query, tag, summary")
+      .eq("user_id", userId)
+      .gte("timestamp", weekAgo.toISOString())
+      .order("timestamp", { ascending: false });
+
+    if (error) {
+      return res.status(500).json({ error: "Could not fetch weekly searches." });
+    }
+
+    // Ask Gemini to generate a personalized insight
+    const insight = await getWeeklyInsight(weekSearches);
+
+    res.status(200).json({
+      insight:      insight,
+      searchCount:  weekSearches.length
+    });
+
+  } catch (error) {
+    console.error("Insight error:", error.message);
+    res.status(500).json({ error: "Server error while generating insight." });
+  }
+});
+
+
+// ── DELETE A SEARCH ───────────────────────────────────────────
+// DELETE /api/searches/:id
+// Protected: YES
+// Returns: { message }
+
+router.delete("/:id", protect, async (req, res) => {
+  try {
+    const searchId = req.params.id;
+    const userId   = req.user.id;
+
+    // Delete only if it belongs to this user (security check)
+    const { error } = await supabase
+      .from("searches")
+      .delete()
+      .eq("id", searchId)
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("Delete search DB error:", error.message);
+      return res.status(500).json({ error: "Could not delete search." });
+    }
+
+    res.status(200).json({ message: "Search deleted successfully!" });
+
+  } catch (error) {
+    console.error("Delete search error:", error.message);
+    res.status(500).json({ error: "Server error while deleting search." });
+  }
+});
+
+
+// ── SHARE A SEARCH ────────────────────────────────────────────
+// PATCH /api/searches/:id/share
+// Protected: YES
+// Generates a unique public link for this search
+// Returns: { message, shareLink, search }
+
+router.patch("/:id/share", protect, async (req, res) => {
+  try {
+    const searchId = req.params.id;
+    const userId   = req.user.id;
+
+    // Find the search and make sure it belongs to this user
+    const { data: existingSearch, error: findError } = await supabase
+      .from("searches")
+      .select("*")
+      .eq("id", searchId)
+      .eq("user_id", userId)
+      .single();
+
+    if (findError || !existingSearch) {
+      return res.status(404).json({
+        error: "Search not found or you do not have permission."
+      });
+    }
+
+    // If already shared, return existing link
+    if (existingSearch.is_shared && existingSearch.share_token) {
+      const shareLink = `${process.env.FRONTEND_URL}/shared/${existingSearch.share_token}`;
+      return res.status(200).json({
+        message:   "Search is already shared.",
+        shareLink: shareLink,
+        search:    existingSearch
+      });
+    }
