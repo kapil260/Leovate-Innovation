@@ -100,6 +100,8 @@ router.post("/signup", async (req, res) => {
   }
 });
 
+
+
 // ── LOGIN ─────────────────────────────────────────────────────
 // POST /api/auth/login
 // Body: { email, password }
@@ -160,6 +162,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
+
 // ── GET CURRENT USER ──────────────────────────────────────────
 // GET /api/auth/me
 // Protected — requires token
@@ -191,6 +194,9 @@ router.get("/me", protect, async (req, res) => {
     res.status(500).json({ error: "Server error." });
   }
 });
+
+
+module.exports = router;
 
 
 module.exports = router;
