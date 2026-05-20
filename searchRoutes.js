@@ -318,3 +318,158 @@ router.patch("/:id/share", protect, async (req, res) => {
         search:    existingSearch
       });
     }
+    // Generate a unique share token
+    const shareToken = crypto.randomBytes(32).toString("hex");
+
+    // Update the search in Supabase
+    const { data: updatedSearch, error: updateError } = await supabase
+      .from("searches")
+      .update({ is_shared: true, share_token: shareToken })
+      .eq("id", searchId)
+      .eq("user_id", userId)
+      .select()
+      .single();
+
+    if (updateError) {
+      return res.status(500).json({ error: "Could not share search." });
+    }
+
+    const shareLink = `${process.env.FRONTEND_URL}/shared/${shareToken}`;
+
+    res.status(200).json({
+      message:   "Search shared successfully!",
+      shareLink: shareLink,
+      search:    updatedSearch
+    });
+
+  } catch (error) {
+    console.error("Share search error:", error.message);
+    res.status(500).json({ error: "Server error while sharing search." });
+  }
+});
+
+
+// ── UNSHARE A SEARCH ─────────────────────────────────────────
+// PATCH /api/searches/:id/unshare
+// Protected: YES
+// Removes the public share link
+// Returns: { message }
+
+router.patch("/:id/unshare", protect, async (req, res) => {
+  try {
+    const searchId = req.params.id;
+    const userId   = req.user.id;
+
+    const { error } = await supabase
+      .from("searches")
+      .update({ is_shared: false, share_token: null })
+      .eq("id", searchId)
+      .eq("user_id", userId);
+
+    if (error) {
+      return res.status(500).json({ error: "Could not unshare search." });
+    }
+
+    res.status(200).json({ message: "Search is now private." });
+
+  } catch (error) {
+    console.error("Unshare error:", error.message);
+    res.status(500).json({ error: "Server error while unsharing search." });
+  }
+});
+
+
+// ── VIEW SHARED SEARCH (PUBLIC) ───────────────────────────────
+// GET /api/searches/shared/:token
+// Public — no login needed
+// Anyone with the share link can view this search
+// Returns: { message, search }
+
+router.get("/shared/:token", async (req, res) => {
+  try {
+    const shareToken = req.params.token;
+
+    // Find the search by token — only return safe fields (not user_id)
+    const { data: search, error } = await supabase
+      .from("searches")
+      .select("id, query, summary, source, tag, timestamp")
+      .eq("share_token", shareToken)
+      .eq("is_shared", true)
+      .single();
+
+    if (error || !search) {
+      return res.status(404).json({
+        error: "Shared search not found or this link has expired."
+      });
+    }
+
+    res.status(200).json({
+      message: "Shared search found!",
+      search:  search
+    });
+
+  } catch (error) {
+    console.error("View shared search error:", error.message);
+    res.status(500).json({ error: "Server error while fetching shared search." });
+  }
+});
+
+
+// ── RETAG ALL SEARCHES WITH AI ────────────────────────────────
+// POST /api/searches/retag-all
+// Protected: YES
+// Goes through all searches tagged as "Other" and re-tags with Gemini
+// Useful for updating old searches saved before AI was added
+
+router.post("/retag-all", protect, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Get searches with no proper tag
+    const { data: searches, error } = await supabase
+      .from("searches")
+      .select("id, query")
+      .eq("user_id", userId)
+      .or("tag.eq.Other,summary.eq.");
+
+    if (error) {
+      return res.status(500).json({ error: "Could not fetch searches." });
+    }
+
+    if (searches.length === 0) {
+      return res.status(200).json({
+        message: "All your searches already have AI tags and summaries!"
+      });
+    }
+
+    let updated = 0;
+
+    // Process each search one by one
+    for (const search of searches) {
+      const [newTag, newSummary] = await Promise.all([
+        getAutoTag(search.query),
+        getAutoSummary(search.query)
+      ]);
+
+      await supabase
+        .from("searches")
+        .update({ tag: newTag, summary: newSummary })
+        .eq("id", search.id);
+
+      updated++;
+    }
+
+    res.status(200).json({
+      message: `Successfully re-tagged ${updated} searches with Gemini AI!`,
+      updated: updated
+    });
+
+  } catch (error) {
+    console.error("Retag error:", error.message);
+    res.status(500).json({ error: "Server error while re-tagging." });
+  }
+});
+
+
+module.exports = router;
+
