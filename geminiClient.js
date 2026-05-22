@@ -59,78 +59,70 @@ async function callGroq(systemPrompt, userMessage) {
   }
 }
 
-// ── AUTO TAG FUNCTION ─────────────────────────────────────────
-// Sends the search query to Gemini and asks it to classify
-// it into one of our 6 categories
-// Returns: "Science", "Tech", "Health", "Finance", "History", or "Other"
-
+// ── AUTO TAG ──────────────────────────────────────────────────
 async function getAutoTag(query) {
   try {
-    // The prompt we send to Gemini
-    const prompt = `You are a search query classifier for an AI search history dashboard called Recall AI.
-    
-Your task is to classify the following search query into EXACTLY ONE of these categories:
-Science, Tech, Health, Finance, History, Other
-
+    const system =
+`You are a search query classifier. Classify queries into exactly one category.
+Categories: Science, Tech, Health, Finance, History, Other
 Rules:
-- Science: biology, chemistry, physics, space, environment, nature, research
-- Tech: programming, software, hardware, AI, apps, computers, coding, internet
-- Health: medicine, diseases, fitness, mental health, nutrition, symptoms, doctors
-- Finance: money, investing, stocks, banking, economy, budgeting, cryptocurrency
-- History: historical events, wars, civilizations, famous people from the past
-- Other: anything that does not fit the above categories
+- Science:  biology, chemistry, physics, space, nature, math, research
+- Tech:     programming, AI, software, computers, apps, internet, hardware
+- Health:   medicine, fitness, mental health, nutrition, diseases, doctors
+- Finance:  money, stocks, investing, banking, crypto, taxes, economy
+- History:  past events, wars, civilizations, ancient history, historical figures
+- Other:    travel, food, sports, entertainment, relationships, hobbies, anything else
+Reply with ONLY the single category word. No punctuation. No explanation.`;
 
-Search query: "${query}"
+    const raw   = await callGroq(system, `Classify: "${query}"`);
 
-Reply with ONLY the category name. No explanation. No punctuation. Just one word.`;
+    if (!raw) {
+      console.warn(`[Tag] Groq returned null for: "${query}"`);
+      return "Other";
+    }
 
-    // Send to Gemini and get response
-    const result = await model.generateContent(prompt);
-    const tag = result.response.text().trim();
+    const clean = raw.replace(/[^a-zA-Z]/g, "").trim();
+    const match = VALID_TAGS.find(t => t.toLowerCase() === clean.toLowerCase());
 
-    // Make sure it is a valid tag — if not default to Other
-    const validTags = ["Science", "Tech", "Health", "Finance", "History", "Other"];
-    return validTags.includes(tag) ? tag : "Other";
+    console.log(`[Tag] "${query.substring(0,50)}" → "${match || "Other"}"`);
+    return match || "Other";
 
-  } catch (error) {
-    // If Gemini fails for any reason, default to Other
-    // This makes sure the search still saves even if AI is down
-    console.error("Gemini auto-tag error:", error.message);
+  } catch (err) {
+    console.error("[Tag ERROR]", err.message);
     return "Other";
   }
 }
 
 
-// ── AUTO SUMMARY FUNCTION ─────────────────────────────────────
-// Sends the search query to Gemini and asks it to write
-// a short plain-English summary of what the search is about
-// Returns: a short string of max 12 words
-
+// ── AUTO SUMMARY ──────────────────────────────────────────────
 async function getAutoSummary(query) {
   try {
-    const prompt = `You are a summarizer for an AI search history dashboard called Recall AI.
+    const system =
+`You are a summarizer. Write a short summary of a search query in 12 words or less.
+Rules:
+- Do NOT start with "This", "The user", "This query", or "This search"
+- Describe the topic directly, like labelling a folder
+- No punctuation at the end
+- No quotes around your answer
+Reply with ONLY the summary text. Nothing else.`;
 
-Write a very short summary (MAXIMUM 12 words) of what the following search query is about.
-Write in simple, clear English. 
-Do NOT start with "This query", "The user", or "This search".
-Just describe what the topic is about directly.
+    const raw = await callGroq(system, `Summarize: "${query}"`);
 
-Search query: "${query}"
+    if (!raw) {
+      console.warn(`[Summary] Groq returned null for: "${query}"`);
+      return "";
+    }
 
-Reply with ONLY the summary. Nothing else.`;
+    const summary = raw.replace(/^["'`]+|["'`]+$/g, "").trim().substring(0, 150);
+    console.log(`[Summary] "${query.substring(0,50)}" → "${summary}"`);
+    return summary;
 
-    const result = await model.generateContent(prompt);
-    const summary = result.response.text().trim();
-
-    // Limit to 150 characters just in case Gemini returns something long
-    return summary.substring(0, 150);
-
-  } catch (error) {
-    console.error("Gemini auto-summary error:", error.message);
-    // Return empty string if AI fails — search still saves without summary
+  } catch (err) {
+    console.error("[Summary ERROR]", err.message);
     return "";
   }
 }
+
 
 
 // ── WEEKLY INSIGHT FUNCTION ───────────────────────────────────
