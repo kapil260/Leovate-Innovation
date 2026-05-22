@@ -122,57 +122,46 @@ Reply with ONLY the summary text. Nothing else.`;
     return "";
   }
 }
-
-
-
-// ── WEEKLY INSIGHT FUNCTION ───────────────────────────────────
-// Generates a smart weekly insight message for the dashboard
-// Based on the user's actual search history from the past 7 days
-// This powers the "Weekly Insights" banner on the dashboard
-// Returns: a short insight string
-
+// ── WEEKLY INSIGHT ────────────────────────────────────────────
 async function getWeeklyInsight(searches) {
   try {
-    // If no searches this week, return a default message
     if (!searches || searches.length === 0) {
-      return "Start searching on ChatGPT to see your weekly insights here!";
+      return "Start searching on ChatGPT or Claude to see your weekly insights!";
     }
 
-    // Build a summary of the searches to send to Gemini
-    const searchList = searches
-      .slice(0, 20) // only send up to 20 searches to keep prompt short
-      .map(s => `- ${s.query}`)
-      .join("\n");
+    const list = searches.slice(0, 20).map(s => `- ${s.query}`).join("\n");
 
-    // Count tags to find the most common one
     const tagCounts = {};
     searches.forEach(s => {
-      tagCounts[s.tag] = (tagCounts[s.tag] || 0) + 1;
+      if (s.tag) tagCounts[s.tag] = (tagCounts[s.tag] || 0) + 1;
     });
-    const topTag = Object.keys(tagCounts).sort((a, b) => tagCounts[b] - tagCounts[a])[0];
+    const topTag = Object.keys(tagCounts)
+      .sort((a, b) => tagCounts[b] - tagCounts[a])[0] || "various topics";
 
-    const prompt = `You are an AI assistant for Recall AI, a search history dashboard.
+    const system =
+`You are a helpful assistant for Recall AI, a search history dashboard.
+Write ONE short friendly insight sentence (max 20 words) about a user's search patterns.
+Make it personal and helpful. Do not start with "You".
+Reply with ONLY the sentence. No quotes.`;
 
-A user has made ${searches.length} searches this week. Their most common topic is ${topTag}.
+    const userMsg =
+`The user made ${searches.length} searches this week. Top topic: ${topTag}.
+Searches:
+${list}`;
 
-Here are some of their searches:
-${searchList}
+    const raw = await callGroq(system, userMsg);
 
-Write ONE short, engaging insight sentence (maximum 20 words) about their search patterns this week.
-Make it feel personal and helpful, like a smart assistant summarizing their week.
-Do not start with "You" — vary the sentence structure.
+    if (!raw) {
+      return `You explored ${topTag} topics ${searches.length} times this week!`;
+    }
 
-Reply with ONLY the insight sentence. Nothing else.`;
+    return raw.replace(/^["'`]+|["'`]+$/g, "").trim();
 
-    const result = await model.generateContent(prompt);
-    return result.response.text().trim();
-
-  } catch (error) {
-    console.error("Gemini weekly insight error:", error.message);
+  } catch (err) {
+    console.error("[Insight ERROR]", err.message);
     return `You made ${searches.length} searches this week. Keep exploring!`;
   }
 }
 
 
-// Export all three functions so routes can use them
 module.exports = { getAutoTag, getAutoSummary, getWeeklyInsight };
