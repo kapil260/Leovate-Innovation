@@ -1,22 +1,63 @@
 // ============================================================
-// geminiClient.js
-// Handles all Gemini AI operations for Recall AI:
-//   1. getAutoTag()     — classifies search into a category
-//   2. getAutoSummary() — writes a short summary of the search
-//   3. getWeeklyInsight() — generates weekly usage insight
-// All functions are free using Google Gemini API
-// Get your free API key from: aistudio.google.com
+// geminiClient.js — Recall AI
+//
+// SWITCHED FROM GEMINI TO GROQ API
+// Reason: Gemini free tier quota exhausted on your account.
+//
+// Groq is 100% free, no quota issues, very fast.
+// Get your free key at: https://console.groq.com
+// (Sign up → API Keys → Create API Key)
+//
+// Uses: llama-3.1-8b-instant model (free, fast, accurate)
 // ============================================================
 
-const { GoogleGenerativeAI } = require("@google/generative-ai");
 require("dotenv").config();
 
-// Create the Gemini AI client using our API key from .env
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GROQ_URL     = "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_MODEL   = "llama-3.1-8b-instant";
 
-// Use the gemini-pro model — free and very capable
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+const VALID_TAGS   = ["Science", "Tech", "Health", "Finance", "History", "Other"];
 
+// ── CORE HELPER — calls Groq API ──────────────────────────────
+async function callGroq(systemPrompt, userMessage) {
+  try {
+    if (!GROQ_API_KEY) {
+      console.error("❌ GROQ_API_KEY missing from .env — add it!");
+      return null;
+    }
+
+    const response = await fetch(GROQ_URL, {
+      method:  "POST",
+      headers: {
+        "Content-Type":  "application/json",
+        "Authorization": `Bearer ${GROQ_API_KEY}`
+      },
+      body: JSON.stringify({
+        model:       GROQ_MODEL,
+        temperature: 0.1,
+        max_tokens:  60,
+        messages: [
+          { role: "system",  content: systemPrompt },
+          { role: "user",    content: userMessage  }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      console.error(`Groq HTTP ${response.status}:`, err.substring(0, 200));
+      return null;
+    }
+
+    const data = await response.json();
+    return data?.choices?.[0]?.message?.content?.trim() || null;
+
+  } catch (err) {
+    console.error("Groq fetch error:", err.message);
+    return null;
+  }
+}
 
 // ── AUTO TAG FUNCTION ─────────────────────────────────────────
 // Sends the search query to Gemini and asks it to classify
