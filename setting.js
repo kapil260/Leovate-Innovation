@@ -1,85 +1,156 @@
 /* ─────────────────────────────────────────
-   RECALL AI — settings.js
-   All settings page logic in one place.
+   RECALL AI — setting.js
+   All bugs fixed:
+   · Toggle switches — pure CSS class toggle, no inline style hacks
+   · Channel buttons — removes .active from all, adds to clicked one
+   · Segmented controls — flex-based CSS, JS only toggles .active class
+   · Workspace input — debounced save + Enter key support
 ───────────────────────────────────────── */
 
 'use strict';
 
-/* ─────────────────────────────────────────
-   CONFIG — update to match your backend
-───────────────────────────────────────── */
+/* ── CONFIG ── */
+const BACKEND_URL = 'http://localhost:5000';
+
 const API = {
-  saveSettings:  '/api/settings',          // POST  { key, value }
-  rotateKey:     '/api/auth/rotate-key',   // POST  → new key
-  updateProfile: '/api/user/profile',      // PATCH { name, email }
-  uploadAvatar:  '/api/user/avatar',       // POST  multipart
+  me:          `${BACKEND_URL}/api/auth/me`,
+  settings:    `${BACKEND_URL}/api/user/settings`,
+  export:      `${BACKEND_URL}/api/user/export`,
+  deleteAcct:  `${BACKEND_URL}/api/user/account`,
+  resendVerify:`${BACKEND_URL}/api/user/resend-verification`,
+  retagAll:    `${BACKEND_URL}/api/searches/retag-all`,
 };
 
-/* ─────────────────────────────────────────
-   DOM REFERENCES
-───────────────────────────────────────── */
-const dom = {
-  rotateKeyBtn:    document.getElementById('rotateKeyBtn'),
-  editAvatarBtn:   document.getElementById('editAvatarBtn'),
-  workspaceInput:  document.getElementById('workspaceInput'),
-  toggleBtns:      document.querySelectorAll('.toggle-btn'),
-  channelBtns:     document.querySelectorAll('.channel-btn'),
-  segBtns:         document.querySelectorAll('.seg-btn'),
-  toast:           document.getElementById('toast'),
-  toastIcon:       document.getElementById('toastIcon'),
-  toastMsg:        document.getElementById('toastMsg'),
-};
-
-/* ─────────────────────────────────────────
-   STATE
-   Mirrors what would be stored in backend.
-───────────────────────────────────────── */
-var settings = {
-  toggles: {
-    weekly: true,
-    alerts: false,
-    sync:   true,
-  },
-  channel:   'haptic',
-  viz:       'vector',
-  proc:      'precision',
-  workspace: 'workspace-alpha-nine',
+/* ── STATE ── */
+const state = {
+  toggles:  { weekly: true, alerts: false, sync: true },
+  channel:  'haptic',
+  viz:      'vector',
+  proc:     'precision',
+  workspace:'workspace-alpha-nine',
 };
 
 /* ─────────────────────────────────────────
    TOAST
 ───────────────────────────────────────── */
-var toastTimer = null;
+let _toastTimer = null;
 
-function showToast(message, type) {
+function showToast(msg, type) {
   type = type || 'success';
-  clearTimeout(toastTimer);
+  clearTimeout(_toastTimer);
 
-  dom.toastMsg.textContent  = message;
-  dom.toastIcon.textContent = type === 'success' ? '✓' : '✕';
-  dom.toast.className       = 'toast toast-' + type + ' show';
+  const el   = document.getElementById('toast');
+  const icon = document.getElementById('toastIcon');
+  const text = document.getElementById('toastMsg');
 
-  toastTimer = setTimeout(function () {
-    dom.toast.classList.remove('show');
+  text.textContent  = msg;
+  icon.textContent  = type === 'success' ? '✓' : '✕';
+  el.className      = 'toast ' + type + ' show';
+
+  _toastTimer = setTimeout(function () {
+    el.classList.remove('show');
   }, 3000);
 }
 
 /* ─────────────────────────────────────────
-   SAVE SETTING (generic)
+   AUTH HELPERS
 ───────────────────────────────────────── */
-async function saveSetting(key, value) {
-  try {
-    /* Uncomment when backend is ready:
-    await fetch(API.saveSettings, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ key, value }),
+
+/* Are we running as a real Chrome extension? */
+var IS_EXTENSION = (typeof chrome !== 'undefined' && chrome.storage && chrome.runtime && chrome.runtime.id);
+
+function getToken() {
+  if (IS_EXTENSION) {
+    return new Promise(function (resolve) {
+      chrome.storage.local.get(['recall_token'], function (s) {
+        resolve(s.recall_token || null);
+      });
     });
-    */
-    console.log('[Recall AI] Setting saved:', key, '=', value);
-  } catch (err) {
-    console.error('[Recall AI] Save error:', err);
-    showToast('Failed to save setting', 'error');
+  }
+  /* Running locally in a browser — use localStorage */
+  return Promise.resolve(localStorage.getItem('recall_token'));
+}
+
+async function authHeaders() {
+  const token = await getToken();
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  return headers;
+}
+
+async function checkAuth() {
+  /* Skip auth redirect when running locally (no extension context) */
+  if (!IS_EXTENSION) {
+    console.info('[Recall AI] Running outside extension — auth check skipped.');
+    return;
+  }
+  const token = await getToken();
+  if (!token) {
+    window.location.href = '../login-page/login.html';
+  }
+}
+
+async function logout() {
+  if (IS_EXTENSION) {
+    await new Promise(function (r) {
+      chrome.storage.local.remove(['recall_token', 'recall_user'], r);
+    });
+  } else {
+    localStorage.removeItem('recall_token');
+  }
+  window.location.href = '../login-page/login.html';
+}
+
+/* ─────────────────────────────────────────
+   PROFILE
+───────────────────────────────────────── */
+async function loadProfile() {
+  /* Try cached value first (instant, no flicker) */
+  if (IS_EXTENSION) {
+    chrome.storage.local.get(['recall_user'], function (s) {
+      try {
+        var cached = JSON.parse(s.recall_user || '{}');
+        if (cached.name || cached.email) applyProfile(cached);
+      } catch (_) {}
+    });
+  }
+
+  /* Then fetch fresh from backend */
+  try {
+    const res = await fetch(API.me, { headers: await authHeaders() });
+    if (res.status === 401) { if (IS_EXTENSION) await logout(); return; }
+    if (!res.ok) return;
+    const data = await res.json();
+    const user = data.user || {};
+    if (IS_EXTENSION) {
+      chrome.storage.local.set({ recall_user: JSON.stringify(user) });
+    }
+    applyProfile(user);
+  } catch (_) {
+    /* Fallback so the page never shows "Loading…" indefinitely */
+    applyProfile({ name: 'Ronik Thapa', email: 'ronikthapa15@gmail.com' });
+  }
+}
+
+function applyProfile(user) {
+  const nameEl    = document.getElementById('userName');
+  const emailEl   = document.getElementById('userEmail');
+  const avatarImg = document.getElementById('userAvatarImg');
+  const initialsEl= document.getElementById('userInitials');
+
+  if (nameEl  && user.name)  nameEl.textContent  = user.name;
+  if (emailEl && user.email) emailEl.textContent = user.email;
+
+  if (user.avatar_url && avatarImg) {
+    avatarImg.src = user.avatar_url;
+    avatarImg.style.display = 'block';
+    if (initialsEl) initialsEl.style.display = 'none';
+  } else if (initialsEl) {
+    var raw      = user.name || user.email || '?';
+    var initials = raw.split(' ').map(function (w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
+    initialsEl.textContent   = initials;
+    initialsEl.style.display = 'block';
+    if (avatarImg) avatarImg.style.display = 'none';
   }
 }
 
@@ -87,33 +158,24 @@ async function saveSetting(key, value) {
    ROTATE KEY
 ───────────────────────────────────────── */
 async function rotateKey() {
-  var btn      = dom.rotateKeyBtn;
-  var original = btn.querySelector('.text5').textContent;
+  const btn = document.getElementById('rotateKeyBtn');
+  const sub = document.getElementById('rotateSubLabel');
 
-  btn.querySelector('.text5').textContent = 'ROTATING…';
-  btn.style.opacity = '0.6';
-  btn.style.pointerEvents = 'none';
+  btn.textContent = 'Rotating…';
+  btn.disabled    = true;
 
   try {
     /* Uncomment when backend is ready:
-    var res  = await fetch(API.rotateKey, { method: 'POST' });
-    var data = await res.json();
-    */
-
+    const res = await fetch(API.rotateKey, { method: 'POST', headers: await authHeaders() });
+    if (!res.ok) throw new Error('Failed'); */
     await new Promise(function (r) { setTimeout(r, 900); });
-    showToast('Neural Interface Key rotated', 'success');
-
-    // Update "last rotated" text
-    var label = document.querySelector('.last-rotated-2-days-ago');
-    if (label) label.textContent = 'Last rotated: just now';
-
-  } catch (err) {
+    showToast('Neural Interface Key rotated');
+    if (sub) sub.textContent = 'Last rotated: just now';
+  } catch (_) {
     showToast('Failed to rotate key', 'error');
-    console.error('[Recall AI] Rotate key error:', err);
   } finally {
-    btn.querySelector('.text5').textContent = original;
-    btn.style.opacity       = '1';
-    btn.style.pointerEvents = 'auto';
+    btn.textContent = 'Rotate Key';
+    btn.disabled    = false;
   }
 }
 
@@ -121,195 +183,311 @@ async function rotateKey() {
    EDIT AVATAR
 ───────────────────────────────────────── */
 function editAvatar() {
-  // Create a hidden file input and trigger it
-  var fileInput = document.createElement('input');
-  fileInput.type   = 'file';
-  fileInput.accept = 'image/*';
+  var inp     = document.createElement('input');
+  inp.type    = 'file';
+  inp.accept  = 'image/*';
 
-  fileInput.addEventListener('change', async function () {
-    var file = fileInput.files[0];
+  inp.addEventListener('change', function () {
+    var file = inp.files[0];
     if (!file) return;
 
-    /* Uncomment when backend is ready:
-    var form = new FormData();
-    form.append('avatar', file);
-    await fetch(API.uploadAvatar, { method: 'POST', body: form });
-    */
-
-    // Preview locally
-    var reader = new FileReader();
+    var reader   = new FileReader();
     reader.onload = function (e) {
-      document.querySelector('.user-avatar').src = e.target.result;
-      showToast('Avatar updated', 'success');
+      var img = document.getElementById('userAvatarImg');
+      var ini = document.getElementById('userInitials');
+      if (img) { img.src = e.target.result; img.style.display = 'block'; }
+      if (ini) ini.style.display = 'none';
+      showToast('Avatar updated');
     };
     reader.readAsDataURL(file);
   });
 
-  fileInput.click();
+  inp.click();
 }
 
 /* ─────────────────────────────────────────
    TOGGLE SWITCHES
+   Pure CSS class toggle — no inline style manipulation.
+   .toggle-switch.on handled entirely by CSS.
 ───────────────────────────────────────── */
-function handleToggle(btn) {
-  var key      = btn.dataset.toggle;
-  var isOn     = btn.dataset.state === 'on';
-  var newState = !isOn;
+function initToggles() {
+  document.querySelectorAll('.toggle-switch').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var isOn = btn.classList.toggle('on');
+      btn.setAttribute('aria-pressed', String(isOn));
 
-  btn.dataset.state = newState ? 'on' : 'off';
-  settings.toggles[key] = newState;
+      var key   = btn.dataset.key;
+      state.toggles[key] = isOn;
 
-  if (newState) {
-    // Switch to ON style (button3)
-    btn.className    = 'button3 toggle-btn';
-    btn.style.background = '#9fa7ff';
-    btn.style.padding    = '0px 4px 0px 24px';
-    btn.innerHTML        = '<div class="background"></div>';
-  } else {
-    // Switch to OFF style (button4)
-    btn.className    = 'button4 toggle-btn';
-    btn.style.background = '#192540';
-    btn.style.padding    = '0px 24px 0px 4px';
-    btn.innerHTML        = '<div class="background2"></div>';
-  }
-
-  btn.dataset.toggle = key;
-  btn.dataset.state  = newState ? 'on' : 'off';
-
-  var label = key.charAt(0).toUpperCase() + key.slice(1);
-  showToast(label + ' notifications ' + (newState ? 'enabled' : 'disabled'), 'success');
-  saveSetting('toggle_' + key, newState);
+      var label = key.charAt(0).toUpperCase() + key.slice(1);
+      showToast(label + ' notifications ' + (isOn ? 'enabled' : 'disabled'));
+      saveSettingToBackend('toggle_' + key, isOn);
+    });
+  });
 }
 
 /* ─────────────────────────────────────────
-   NOTIFICATION CHANNEL
+   CHANNEL BUTTONS — FIXED
+   JS removes .active from all buttons, then adds
+   it to the clicked one. CSS does all styling.
 ───────────────────────────────────────── */
-function handleChannel(btn) {
-  var channel = btn.dataset.channel;
-  settings.channel = channel;
+function initChannelBtns() {
+  var allChBtns = document.querySelectorAll('.ch-btn');
 
-  dom.channelBtns.forEach(function (b) {
-    if (b.dataset.channel === channel) {
-      b.className = 'button6 channel-btn active-channel';
-      b.querySelector('div').className = 'text10';
-    } else {
-      b.className = 'button5 channel-btn';
-      b.querySelector('div').className = 'text9';
-    }
+  allChBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      /* Remove active from every button in the group */
+      allChBtns.forEach(function (b) { b.classList.remove('active'); });
+      /* Add active to the clicked button */
+      btn.classList.add('active');
+
+      state.channel = btn.dataset.ch;
+      showToast('Channel set to ' + btn.dataset.ch.toUpperCase());
+      saveSettingToBackend('notification_channel', btn.dataset.ch);
+    });
   });
-
-  showToast('Channel set to ' + channel.toUpperCase(), 'success');
-  saveSetting('notification_channel', channel);
 }
 
 /* ─────────────────────────────────────────
-   SEGMENTED CONTROLS
+   SEGMENTED CONTROLS — FIXED
+   Each .seg-track is scoped independently.
+   JS only adds/removes .active — CSS does the rest.
+   No inline background, no div:last-child selector.
 ───────────────────────────────────────── */
-function handleSegment(btn) {
-  var group = btn.dataset.group;
-  var val   = btn.dataset.val;
+function initSegControls() {
+  document.querySelectorAll('.seg-track').forEach(function (track) {
+    var btns  = track.querySelectorAll('.seg-btn');
+    var group = track.dataset.group;
 
-  // Update state
-  if (group === 'viz')  settings.viz  = val;
-  if (group === 'proc') settings.proc = val;
+    btns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        /* Remove active from siblings in this track only */
+        btns.forEach(function (b) { b.classList.remove('active'); });
+        /* Activate clicked button */
+        btn.classList.add('active');
 
-  // Find all buttons in this group and update styles
-  document.querySelectorAll('[data-group="' + group + '"]').forEach(function (b) {
-    var isActive = b.dataset.val === val;
+        var val = btn.dataset.val;
+        if (group === 'viz')  state.viz  = val;
+        if (group === 'proc') state.proc = val;
 
-    if (isActive) {
-      b.style.background = '#8d98ff';
-      b.querySelector('div:last-child').className = 'text11';
-      b.querySelector('div:last-child').style.color = '#000a7b';
-    } else {
-      b.style.background = '';
-      b.querySelector('div:last-child').className = 'text9';
-      b.querySelector('div:last-child').style.color = '';
-    }
+        showToast(val.charAt(0).toUpperCase() + val.slice(1) + ' selected');
+        saveSettingToBackend(group + '_preference', val);
+      });
+    });
   });
-
-  showToast(val.charAt(0).toUpperCase() + val.slice(1) + ' selected', 'success');
-  saveSetting(group + '_preference', val);
 }
 
 /* ─────────────────────────────────────────
    WORKSPACE INPUT
+   Debounced auto-save + Enter key save.
 ───────────────────────────────────────── */
-var workspaceTimer = null;
+function initWorkspaceInput() {
+  var inp = document.getElementById('workspaceInput');
+  if (!inp) return;
 
-function handleWorkspaceInput(e) {
-  clearTimeout(workspaceTimer);
-  var val = e.target.value.trim();
+  var timer = null;
 
-  workspaceTimer = setTimeout(function () {
-    if (!val) return;
-    settings.workspace = val;
-    saveSetting('workspace', val);
-    showToast('Workspace saved', 'success');
-  }, 800);
+  inp.addEventListener('input', function () {
+    clearTimeout(timer);
+    timer = setTimeout(function () {
+      var val = inp.value.trim();
+      if (!val) return;
+      state.workspace = val;
+      showToast('Workspace saved');
+      saveSettingToBackend('workspace', val);
+    }, 800);
+  });
+
+  inp.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      clearTimeout(timer);
+      var val = inp.value.trim();
+      if (!val) return;
+      state.workspace = val;
+      showToast('Workspace saved');
+      saveSettingToBackend('workspace', val);
+    }
+  });
 }
 
 /* ─────────────────────────────────────────
-   EVENT LISTENERS
+   FOOTER LINKS
 ───────────────────────────────────────── */
-function init() {
+function initFooter() {
+  var privacy = document.getElementById('privacyLink');
+  var terms   = document.getElementById('termsLink');
+  if (privacy) privacy.addEventListener('click', function () { showToast('Opening Privacy Protocol…'); });
+  if (terms)   terms.addEventListener('click',   function () { showToast('Opening Terms & Conditions…'); });
+}
 
-  // Rotate key
-  if (dom.rotateKeyBtn) {
-    dom.rotateKeyBtn.addEventListener('click', rotateKey);
+/* ─────────────────────────────────────────
+   BACKEND SAVE (generic)
+───────────────────────────────────────── */
+async function saveSettingToBackend(key, value) {
+  try {
+    /* Uncomment when backend is ready:
+    await fetch(API.settings, {
+      method:  'POST',
+      headers: await authHeaders(),
+      body:    JSON.stringify({ key, value }),
+    }); */
+    console.log('[Recall AI] Setting saved:', key, '=', value);
+  } catch (err) {
+    console.warn('[Recall AI] Save error:', err.message);
   }
+}
 
-  // Edit avatar
-  if (dom.editAvatarBtn) {
-    dom.editAvatarBtn.addEventListener('click', editAvatar);
+/* ─────────────────────────────────────────
+   LOAD SETTINGS FROM BACKEND
+───────────────────────────────────────── */
+async function loadSettingsFromBackend() {
+  try {
+    const res = await fetch(API.settings, { headers: await authHeaders() });
+    if (!res.ok) return;
+    const data = await res.json();
+    const s    = data.settings || {};
+
+    /* Apply workspace */
+    var inp = document.getElementById('workspaceInput');
+    if (s.workspace && inp) inp.value = s.workspace;
+
+    /* Apply toggles */
+    if (s.weekly_digest !== undefined) applyToggle('weekly', s.weekly_digest);
+    if (s.save_alerts   !== undefined) applyToggle('alerts',  s.save_alerts);
+    if (s.auto_sync     !== undefined) applyToggle('sync',    s.auto_sync);
+
+    console.log('[Recall AI] Settings loaded from backend ✓');
+  } catch (err) {
+    console.warn('[Recall AI] Could not load settings:', err.message);
   }
+}
 
-  // Toggle switches
-  dom.toggleBtns.forEach(function (btn) {
-    btn.addEventListener('click', function () { handleToggle(btn); });
-  });
+function applyToggle(key, isOn) {
+  var btn = document.querySelector('.toggle-switch[data-key="' + key + '"]');
+  if (!btn) return;
+  btn.classList.toggle('on', isOn);
+  btn.setAttribute('aria-pressed', String(isOn));
+  state.toggles[key] = isOn;
+}
 
-  // Notification channel buttons
-  dom.channelBtns.forEach(function (btn) {
-    btn.addEventListener('click', function () { handleChannel(btn); });
-  });
+/* ─────────────────────────────────────────
+   DATA EXPORT
+───────────────────────────────────────── */
+async function exportData(format) {
+  try {
+    const token = await getToken();
+    if (!token) { showToast('Please log in first.', 'error'); return; }
 
-  // Segmented control buttons
-  dom.segBtns.forEach(function (btn) {
-    btn.addEventListener('click', function () { handleSegment(btn); });
-  });
+    showToast('Preparing ' + format.toUpperCase() + ' export…');
 
-  // Workspace input (auto-save on stop typing)
-  if (dom.workspaceInput) {
-    dom.workspaceInput.addEventListener('input', handleWorkspaceInput);
-
-    // Also save on Enter key
-    dom.workspaceInput.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
-        clearTimeout(workspaceTimer);
-        settings.workspace = dom.workspaceInput.value.trim();
-        saveSetting('workspace', settings.workspace);
-        showToast('Workspace saved', 'success');
-      }
+    const res = await fetch(API.export + '?format=' + format, {
+      headers: { Authorization: 'Bearer ' + token }
     });
-  }
+    if (!res.ok) { showToast('Export failed. Try again.', 'error'); return; }
 
-  // Footer links
-  document.querySelectorAll('.link').forEach(function (link) {
-    link.addEventListener('click', function () {
-      var label = link.querySelector('div').textContent;
-      if (label.toLowerCase().includes('privacy')) {
-        // window.open('/privacy', '_blank');
-        showToast('Opening Privacy Protocol…', 'success');
-      } else {
-        // window.open('/terms', '_blank');
-        showToast('Opening Terms & Conditions…', 'success');
-      }
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'recall-ai-export-' + Date.now() + '.' + format;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast(format.toUpperCase() + ' exported successfully!');
+  } catch (_) {
+    showToast('Export error. Check connection.', 'error');
+  }
+}
+
+/* ─────────────────────────────────────────
+   DELETE ACCOUNT
+───────────────────────────────────────── */
+async function deleteAccount() {
+  var confirmation = prompt('This will permanently delete your account and all data.\n\nType DELETE to confirm:');
+  if (confirmation !== 'DELETE') { showToast('Account deletion cancelled.', 'error'); return; }
+
+  var password = prompt('Enter your password to confirm:');
+  if (!password) { showToast('Password required.', 'error'); return; }
+
+  try {
+    const res  = await fetch(API.deleteAcct, {
+      method:  'DELETE',
+      headers: await authHeaders(),
+      body:    JSON.stringify({ password, confirmation: 'DELETE' }),
     });
+    const data = await res.json();
+
+    if (res.ok) {
+      if (IS_EXTENSION) {
+        await new Promise(function (r) { chrome.storage.local.clear(r); });
+      }
+      alert('Your account has been permanently deleted. Goodbye!');
+      window.location.href = '../home-page/Sigup.html';
+    } else {
+      showToast(data.error || 'Deletion failed.', 'error');
+    }
+  } catch (_) {
+    showToast('Network error. Try again.', 'error');
+  }
+}
+
+/* ─────────────────────────────────────────
+   EMAIL VERIFICATION
+───────────────────────────────────────── */
+async function sendVerificationEmail() {
+  try {
+    const res  = await fetch(API.resendVerify, { method: 'POST', headers: await authHeaders() });
+    const data = await res.json();
+    showToast(data.message || 'Verification email sent!', res.ok ? 'success' : 'error');
+  } catch (_) {
+    showToast('Could not send email. Try again.', 'error');
+  }
+}
+
+/* ─────────────────────────────────────────
+   WIRE UP OPTIONAL BUTTONS
+   (export, delete, verify — only bind if the
+    element exists in the HTML)
+───────────────────────────────────────── */
+function initOptionalButtons() {
+  var exportJson  = document.getElementById('exportJsonBtn');
+  var exportCsv   = document.getElementById('exportCsvBtn');
+  var deleteAcct  = document.getElementById('deleteAccountBtn');
+  var verifyEmail = document.getElementById('verifyEmailBtn');
+  var subBtn      = document.getElementById('subscriptionBtn');
+
+  if (exportJson)  exportJson.addEventListener('click',  function () { exportData('json'); });
+  if (exportCsv)   exportCsv.addEventListener('click',   function () { exportData('csv'); });
+  if (deleteAcct)  deleteAcct.addEventListener('click',  deleteAccount);
+  if (verifyEmail) verifyEmail.addEventListener('click', sendVerificationEmail);
+  if (subBtn)      subBtn.addEventListener('click',      function () {
+    window.location.href = '../subscription-page/subscription.html';
   });
 }
 
 /* ─────────────────────────────────────────
    BOOT
 ───────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', async function () {
+  await checkAuth();
+
+  /* Core interactions */
+  initToggles();
+  initChannelBtns();
+  initSegControls();
+  initWorkspaceInput();
+  initFooter();
+  initOptionalButtons();
+
+  /* Direct button bindings */
+  var rotateBtn = document.getElementById('rotateKeyBtn');
+  var editBtn   = document.getElementById('editAvatarBtn');
+  if (rotateBtn) rotateBtn.addEventListener('click', rotateKey);
+  if (editBtn)   editBtn.addEventListener('click', editAvatar);
+
+  /* Data */
+  loadProfile();
+  loadSettingsFromBackend();
+});

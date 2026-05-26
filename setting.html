@@ -2,424 +2,270 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="setting.css">
-  <style>
-    a,
-    button,
-    input,
-    select,
-    h1,
-    h2,
-    h3,
-    h4,
-    h5,
-    * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-        border: none;
-        text-decoration: none;
-        background: none;
-        -webkit-font-smoothing: antialiased;
-    }
-
-    menu, ol, ul {
-        list-style-type: none;
-        margin: 0;
-        padding: 0;
-    }
-  </style>
   <title>Settings — Recall AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="setting.css">
 </head>
 <body>
+<div class="page-shell">
 
-  <div class="settings-recall-ai">
+  <!-- Ambient glows -->
+  <div class="glow-a"></div>
+  <div class="glow-b"></div>
 
-    <!-- Background decoration -->
-    <div class="background-decoration-ethereal-glows"></div>
-    <div class="overlay-blur"></div>
-
-    <!-- ── MAIN CONTENT ── -->
-    <div class="main-content-canvas">
-
-      <!-- ── USER PROFILE HEADER ── -->
-      <div class="header-user-profile-section">
-        <div class="container">
-
-          <!-- Avatar -->
-          <div class="container2 avatar-wrap">
-            <div class="gradient-blur"></div>
-            <img class="user-avatar" src="user-avatar0.png" alt="User Avatar" />
-            <button class="button" id="editAvatarBtn" aria-label="Edit avatar">
-              <div class="button-shadow"></div>
-              <svg width="14" height="14" fill="none" stroke="#060e20" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-              </svg>
-            </button>
-          </div>
-
-          <!-- User info -->
-          <div class="container2">
-            <div class="heading-2">
-              <div class="ronik-thapa" id="userName">Ronik Thapa</div>
-            </div>
-            <div class="container4">
-              <div class="ronikthapa-15-gmail-com" id="userEmail">ronikthapa15@gmail.com</div>
-            </div>
-            <div class="container5">
-              <div class="overlay-border">
-                <div class="text">PRO MEMBER</div>
-              </div>
-              <div class="overlay-border2">
-                <div class="text2">TIER 2 ACCESS</div>
-              </div>
-            </div>
-          </div>
-
-        </div>
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#c7d2fe" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+          <path d="M2 17l10 5 10-5"/>
+          <path d="M2 12l10 5 10-5"/>
+        </svg>
       </div>
-
-      <!-- ── BENTO GRID ── -->
-      <div class="bento-grid-settings-container">
-
-        <!-- ACCOUNT SECURITY (large, spans 8 cols) -->
-        <div class="section-group-account-bento-large">
-
-          <div class="heading-3">
-            <svg width="18" height="18" fill="none" stroke="#9fa7ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
-            <div class="text3">Account Security</div>
-          </div>
-
-          <div class="container7">
-
-            <!-- Row 1 — Neural Interface Key -->
-            <div class="container8">
-              <div class="container2">
-                <div class="container4">
-                  <div class="text4">Neural Interface Key</div>
-                </div>
-                <div class="container4">
-                  <div class="last-rotated-2-days-ago">Last rotated: 2 days ago</div>
-                </div>
-              </div>
-              <button class="button2" id="rotateKeyBtn">
-                <div class="text5">ROTATE KEY</div>
-              </button>
-            </div>
-
-            <!-- Row 2 — Two-Factor Authentication -->
-            <div class="container8">
-              <div class="container2">
-                <div class="container4">
-                  <div class="text4">Two-Factor Authentication</div>
-                </div>
-                <div class="container4">
-                  <div class="biometric-scan-required-for-major-actions">Biometric scan required for major actions</div>
-                </div>
-              </div>
-              <div class="container9">
-                <svg width="16" height="16" fill="none" stroke="#c6fff3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                  <polyline points="20 6 9 17 4 12"/>
-                </svg>
-                <div class="container2">
-                  <div class="text6">ACTIVE</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Row 3 — Linked Data Streams -->
-            <div class="container8">
-              <div class="container2">
-                <div class="container4">
-                  <div class="text4">Linked Data Streams</div>
-                </div>
-                <div class="container4">
-                  <div class="manage-external-cognitive-integrations">Manage external cognitive integrations</div>
-                </div>
-              </div>
-              <div class="container11">
-                <div class="background-border">
-                  <svg width="14" height="14" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                  </svg>
-                </div>
-                <div class="margin">
-                  <div class="background-border2">
-                    <svg width="14" height="14" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                      <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
-                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                    </svg>
-                  </div>
-                </div>
-                <div class="margin">
-                  <div class="background-border3">
-                    <svg width="14" height="14" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-          <!-- Decorative background icon -->
-          <div class="container15-deco">
-            <svg width="220" height="220" fill="none" viewBox="0 0 220 220" opacity="0.06">
-              <path d="M110 10 L210 55 L210 155 L110 210 L10 155 L10 55 Z" stroke="#9fa7ff" stroke-width="2" fill="none"/>
-              <path d="M110 40 L180 70 L180 150 L110 180 L40 150 L40 70 Z" stroke="#9fa7ff" stroke-width="1.5" fill="none"/>
-            </svg>
-          </div>
-
-        </div>
-
-        <!-- NOTIFICATIONS (spans 4 cols) -->
-        <div class="section-group-notifications-bento-vertical">
-
-          <div class="heading-3-margin">
-            <div class="heading-32">
-              <svg width="18" height="18" fill="none" stroke="#be83fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-              </svg>
-              <div class="text7">Notifications</div>
-            </div>
-          </div>
-
-          <div class="container17">
-
-            <!-- Toggle 1 — Weekly Activity (ON) -->
-            <div class="weekly-activity-toggle">
-              <div class="container18">
-                <div class="container4">
-                  <div class="weekly-activity-reminders">Weekly Activity<br />Reminders</div>
-                </div>
-                <div class="container4">
-                  <div class="background-thread-status">Get notified about weekly stats</div>
-                </div>
-              </div>
-              <button class="button3 toggle-btn" data-toggle="weekly" data-state="on" aria-label="Toggle weekly activity">
-                <div class="background"></div>
-              </button>
-            </div>
-
-            <!-- Toggle 2 — Critical Alerts (OFF) -->
-            <div class="container19">
-              <div class="container18">
-                <div class="container4">
-                  <div class="critical-alerts">Critical Alerts</div>
-                </div>
-                <div class="container4">
-                  <div class="background-thread-status">Security and system alerts</div>
-                </div>
-              </div>
-              <button class="button4 toggle-btn" data-toggle="alerts" data-state="off" aria-label="Toggle critical alerts">
-                <div class="background2"></div>
-              </button>
-            </div>
-
-            <!-- Toggle 3 — Syncing Updates (ON) -->
-            <div class="container19">
-              <div class="container18">
-                <div class="container4">
-                  <div class="text8">Syncing Updates</div>
-                </div>
-                <div class="container4">
-                  <div class="background-thread-status">Background thread status</div>
-                </div>
-              </div>
-              <button class="button3 toggle-btn" data-toggle="sync" data-state="on" aria-label="Toggle syncing updates">
-                <div class="background"></div>
-              </button>
-            </div>
-
-          </div>
-
-          <!-- Notification channel selector -->
-          <div class="margin2">
-            <div class="overlay-border3">
-              <div class="container4">
-                <div class="notification-channel">NOTIFICATION CHANNEL</div>
-              </div>
-              <div class="container20">
-                <button class="button5 channel-btn" data-channel="email" id="emailChannelBtn">
-                  <div class="text9">EMAIL</div>
-                </button>
-                <button class="button6 channel-btn active-channel" data-channel="haptic" id="hapticChannelBtn">
-                  <div class="text10">HAPTIC</div>
-                </button>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        <!-- INTERACTION PREFERENCES (spans 12 cols) -->
-        <div class="section-group-preferences-editorial-layout">
-
-          <div class="container21">
-            <div class="heading-33">
-              <div class="interaction-preferences">Interaction<br />Preferences</div>
-            </div>
-            <div class="container4">
-              <div class="customize-how-the-cognitive-ether-responds-to-your-mental-patterns-adjust-latency-visualization-styles-and-semantic-depth">
-                Customize how the Cognitive<br />Ether responds to your mental<br />patterns. Adjust latency,<br />visualization styles, and semantic<br />depth.
-              </div>
-            </div>
-          </div>
-
-          <div class="container22">
-
-            <!-- Segmented control 1 — Visualization Engine -->
-            <div class="segmented-control-1">
-              <div class="label-visualization-engine">VISUALIZATION ENGINE</div>
-              <div class="background3" id="vizEngine">
-                <button class="button7 seg-btn active-seg" data-group="viz" data-val="vector">
-                  <div class="button-shadow2"></div>
-                  <div class="text11">VECTOR</div>
-                </button>
-                <button class="button8 seg-btn" data-group="viz" data-val="voxel">
-                  <div class="text9">VOXEL</div>
-                </button>
-                <button class="button9 seg-btn" data-group="viz" data-val="fluid">
-                  <div class="text9">FLUID</div>
-                </button>
-              </div>
-            </div>
-
-            <!-- Segmented control 2 — Processing Priority -->
-            <div class="segmented-control-2">
-              <div class="label-processing-priority">PROCESSING PRIORITY</div>
-              <div class="background4" id="procPriority">
-                <button class="button10 seg-btn" data-group="proc" data-val="latency">
-                  <div class="text9">LATENCY</div>
-                </button>
-                <button class="button11 seg-btn active-seg" data-group="proc" data-val="precision">
-                  <div class="button-shadow2"></div>
-                  <div class="text11">PRECISION</div>
-                </button>
-              </div>
-            </div>
-
-            <!-- Input field — Default workspace -->
-            <div class="input-field-minimalist-trace-style">
-              <div class="label-default-cognition-workspace">DEFAULT COGNITION WORKSPACE</div>
-              <div class="input">
-                <div class="container23">
-                  <input
-                    class="workspace-input"
-                    type="text"
-                    id="workspaceInput"
-                    placeholder="workspace-alpha-nine"
-                    value="workspace-alpha-nine"
-                  />
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
-      <!-- ── FOOTER ── -->
-      <div class="footer">
-        <div class="container2">
-          <div class="recall-ai-2026">recall ai © 2026</div>
-        </div>
-        <div class="container24">
-          <div class="link">
-            <div class="privacy-neural-protocol">PRIVACY NEURAL PROTOCOL</div>
-          </div>
-          <div class="link">
-            <div class="terms-condition">TERMS &amp; CONDITION</div>
-          </div>
-        </div>
-      </div>
-
+      <span class="brand-name">Recall AI</span>
     </div>
 
-    <!-- ── SIDEBAR ── -->
-    <aside class="aside-side-nav-bar-integration">
+    <nav class="nav">
+      <a class="nav-item" href="../dashboard-page/dashboard.html">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+          <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+        </svg>
+        <span>Dashboard</span>
+      </a>
+      <a class="nav-item" href="../history-page/history.html">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+          <polyline points="12 8 12 12 14 14"/>
+          <path d="M3.05 11a9 9 0 1 1 .5 4m-.5 5v-5h5"/>
+        </svg>
+        <span>History</span>
+      </a>
+      <a class="nav-item active" href="../setting-page/setting.html" aria-current="page">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        <span>Settings</span>
+      </a>
+    </nav>
 
-      <!-- Brand -->
-      <div class="group-1">
-        <img class="background5" src="background5.png" alt="Recall AI Logo" />
-        <div class="recall-ai">Recall AI</div>
+    <div class="bandwidth-widget">
+      <div class="bw-label">Neural Bandwidth</div>
+      <div class="bw-track"><div class="bw-fill"></div></div>
+      <div class="bw-stats">6.5TB / 10TB remaining</div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN CONTENT ── -->
+  <main class="main">
+
+    <!-- Profile header -->
+    <header class="profile-header">
+      <div class="profile-left">
+        <div class="avatar-shell">
+          <div class="avatar-glow"></div>
+          <div class="avatar-ring"></div>
+          <div id="userAvatarEl">
+            <img id="userAvatarImg" src="" alt="User avatar" />
+            <span id="userInitials">?</span>
+          </div>
+          <button class="avatar-edit-btn" id="editAvatarBtn" aria-label="Edit avatar">
+            <svg width="13" height="13" fill="none" stroke="#060e20" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+        </div>
+        <div class="profile-info">
+          <div id="userName">Loading…</div>
+          <div id="userEmail">Loading…</div>
+          <div class="badges">
+            <span class="badge badge-indigo">Pro Member</span>
+            <span class="badge badge-mint">Tier 2 Access</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Bento grid -->
+    <div class="bento">
+
+      <!-- Account Security -->
+      <div class="card card-security">
+        <div class="card-title card-title-indigo">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          Account Security
+        </div>
+
+        <div class="sec-row">
+          <div>
+            <div class="sec-label">Neural Interface Key</div>
+            <div class="sec-sub" id="rotateSubLabel">Last rotated: 2 days ago</div>
+          </div>
+          <button class="btn-rotate" id="rotateKeyBtn">Rotate Key</button>
+        </div>
+
+        <div class="sec-row">
+          <div>
+            <div class="sec-label">Two-Factor Authentication</div>
+            <div class="sec-sub">Biometric scan required for major actions</div>
+          </div>
+          <div class="status-active">
+            <div class="status-dot"></div>
+            Active
+          </div>
+        </div>
+
+        <div class="sec-row">
+          <div>
+            <div class="sec-label">Linked Data Streams</div>
+            <div class="sec-sub">Manage external cognitive integrations</div>
+          </div>
+          <div class="streams-avatars">
+            <div class="stream-avatar sa-1">
+              <svg width="13" height="13" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+              </svg>
+            </div>
+            <div class="stream-avatar sa-2">
+              <svg width="13" height="13" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              </svg>
+            </div>
+            <div class="stream-avatar sa-3">
+              <svg width="13" height="13" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <svg class="sec-deco" viewBox="0 0 200 200" fill="none" aria-hidden="true">
+          <path d="M100 10 L190 55 L190 145 L100 190 L10 145 L10 55 Z" stroke="#9fa7ff" stroke-width="2"/>
+          <path d="M100 40 L165 70 L165 130 L100 160 L35 130 L35 70 Z" stroke="#9fa7ff" stroke-width="1.5"/>
+          <path d="M100 70 L140 88 L140 112 L100 130 L60 112 L60 88 Z" stroke="#9fa7ff" stroke-width="1"/>
+        </svg>
       </div>
 
-      <!-- Nav -->
-      <div class="nav-margin">
-        <nav class="nav">
-          <div class="link-css-transform">
-            <a class="link2" href="../dashboard-page/dashboard.html">
-              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-                <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-              </svg>
-              <div class="container2">
-                <div class="text12">DASHBOARD</div>
-              </div>
-            </a>
-          </div>
-          <div class="link-css-transform">
-            <a class="link2" href="../history-page/history.html">
-              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                <polyline points="12 8 12 12 14 14"/>
-                <path d="M3.05 11a9 9 0 1 1 .5 4m-.5 5v-5h5"/>
-              </svg>
-              <div class="container2">
-                <div class="text12">HISTORY</div>
-              </div>
-            </a>
-          </div>
-          <div class="link-active-state-settings-css-transform">
-            <a class="link-active-state-settings" href="../setting-page/setting.html">
-              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-              </svg>
-              <div class="container2">
-                <div class="text13">SETTINGS</div>
-              </div>
-            </a>
-          </div>
-        </nav>
-      </div>
+      <!-- Notifications -->
+      <div class="card card-alt card-notif">
+        <div class="card-title card-title-violet">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          Notifications
+        </div>
 
-      <div class="container28"></div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Weekly Activity</div>
+            <div class="toggle-sublabel">Get notified about weekly stats</div>
+          </div>
+          <button class="toggle-switch on" data-key="weekly" aria-label="Toggle weekly activity" aria-pressed="true" role="switch">
+            <div class="toggle-knob"></div>
+          </button>
+        </div>
 
-      <!-- Neural Bandwidth -->
-      <div class="margin3">
-        <div class="background-border4">
-          <div class="container4">
-            <div class="neural-bandwidth">Neural Bandwidth</div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Critical Alerts</div>
+            <div class="toggle-sublabel">Security and system alerts</div>
           </div>
-          <div class="background6">
-            <div class="gradient"></div>
+          <button class="toggle-switch" data-key="alerts" aria-label="Toggle critical alerts" aria-pressed="false" role="switch">
+            <div class="toggle-knob"></div>
+          </button>
+        </div>
+
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Syncing Updates</div>
+            <div class="toggle-sublabel">Background thread status</div>
           </div>
-          <div class="container4">
-            <div class="_6-5-tb-10-tb-remaining">6.5TB / 10TB REMAINING</div>
+          <button class="toggle-switch on" data-key="sync" aria-label="Toggle syncing updates" aria-pressed="true" role="switch">
+            <div class="toggle-knob"></div>
+          </button>
+        </div>
+
+        <div class="channel-section">
+          <div class="channel-label">Notification Channel</div>
+          <div class="channel-btns">
+            <button class="ch-btn" data-ch="email">Email</button>
+            <button class="ch-btn active" data-ch="haptic">Haptic</button>
           </div>
         </div>
       </div>
 
-    </aside>
+      <!-- Interaction Preferences -->
+      <div class="card card-prefs">
+        <div class="prefs-intro">
+          <div class="prefs-heading">Interaction<br>Preferences</div>
+          <p class="prefs-body">Customize how the Cognitive Ether responds to your mental patterns. Adjust latency, visualization styles, and semantic depth.</p>
+        </div>
 
-    <!-- Toast -->
-    <div class="toast" id="toast" role="alert">
-      <span class="toast-icon" id="toastIcon">✓</span>
-      <span class="toast-msg" id="toastMsg"></span>
-    </div>
+        <div class="prefs-controls">
 
+          <div class="ctrl-group">
+            <div class="ctrl-label">Visualization Engine</div>
+            <div class="seg-track" data-group="viz">
+              <button class="seg-btn active" data-val="vector">Vector</button>
+              <button class="seg-btn" data-val="voxel">Voxel</button>
+              <button class="seg-btn" data-val="fluid">Fluid</button>
+            </div>
+          </div>
+
+          <div class="ctrl-group">
+            <div class="ctrl-label">Processing Priority</div>
+            <div class="seg-track" data-group="proc">
+              <button class="seg-btn" data-val="latency">Latency</button>
+              <button class="seg-btn active" data-val="precision">Precision</button>
+            </div>
+          </div>
+
+          <div class="ctrl-group full-width">
+            <div class="ctrl-label">Default Cognition Workspace</div>
+            <div class="ws-input-wrap">
+              <input
+                class="ws-input"
+                type="text"
+                id="workspaceInput"
+                placeholder="workspace-alpha-nine"
+                value="workspace-alpha-nine"
+                spellcheck="false"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /bento -->
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-copy">Recall AI © 2026</div>
+      <div class="footer-links">
+        <div class="footer-link" id="privacyLink">Privacy Neural Protocol</div>
+        <div class="footer-link" id="termsLink">Terms &amp; Condition</div>
+      </div>
+    </footer>
+
+  </main>
+
+  <!-- Toast -->
+  <div class="toast" id="toast" role="alert" aria-live="polite">
+    <span class="toast-icon" id="toastIcon">✓</span>
+    <span id="toastMsg"></span>
   </div>
 
-  <script src="setting.js"></script>
+</div><!-- /page-shell -->
+<script src="setting.js"></script>
 </body>
 </html>
