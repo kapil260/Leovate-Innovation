@@ -6,6 +6,7 @@
   <title>Settings — Recall AI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
   <link rel="stylesheet" href="setting.css">
 </head>
 <body>
@@ -19,11 +20,7 @@
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-logo">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#c7d2fe" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-          <path d="M2 17l10 5 10-5"/>
-          <path d="M2 12l10 5 10-5"/>
-        </svg>
+        <img src="../icons/icon48.png" alt="Recall AI Logo" style="width:100%;height:100%;object-fit:contain;border-radius:6px;" onerror="this.style.display='none';this.parentElement.textContent='R'">
       </div>
       <span class="brand-name">Recall AI</span>
     </div>
@@ -43,219 +40,570 @@
         </svg>
         <span>History</span>
       </a>
-      <a class="nav-item active" href="../setting-page/setting.html" aria-current="page">
+      <a class="nav-item" href="../profile-page/profile.html">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+        </svg>
+        <span>Profile</span>
+      </a>
+      <a class="nav-item active" href="setting.html" aria-current="page">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="12" cy="12" r="3"/>
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
         </svg>
         <span>Settings</span>
       </a>
+      <a class="nav-item" href="../subscription-page/subscription.html">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.86L12 17.77l-6.18 3.23L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+        <span>Subscription</span>
+      </a>
     </nav>
 
-    <div class="bandwidth-widget">
-      <div class="bw-label">Neural Bandwidth</div>
-      <div class="bw-track"><div class="bw-fill"></div></div>
-      <div class="bw-stats">6.5TB / 10TB remaining</div>
+    <!-- User profile in sidebar -->
+    <div class="sidebar-profile">
+      <div class="sp-avatar" id="spAvatar">?</div>
+      <div class="sp-info">
+        <div class="sp-name" id="spName">Loading…</div>
+        <div class="sp-email" id="spEmail">Loading…</div>
+      </div>
+      <button class="sp-logout" id="logoutBtn" title="Sign out">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
     </div>
   </aside>
 
   <!-- ── MAIN CONTENT ── -->
   <main class="main">
 
-    <!-- Profile header -->
-    <header class="profile-header">
-      <div class="profile-left">
-        <div class="avatar-shell">
-          <div class="avatar-glow"></div>
-          <div class="avatar-ring"></div>
-          <div id="userAvatarEl">
-            <img id="userAvatarImg" src="" alt="User avatar" />
-            <span id="userInitials">?</span>
-          </div>
-          <button class="avatar-edit-btn" id="editAvatarBtn" aria-label="Edit avatar">
-            <svg width="13" height="13" fill="none" stroke="#060e20" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
-          </button>
-        </div>
-        <div class="profile-info">
-          <div id="userName">Loading…</div>
-          <div id="userEmail">Loading…</div>
-          <div class="badges">
-            <span class="badge badge-indigo">Pro Member</span>
-            <span class="badge badge-mint">Tier 2 Access</span>
-          </div>
-        </div>
+    <!-- Page header -->
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Settings</h1>
+        <p class="page-sub">Manage your account, preferences, and privacy</p>
       </div>
-    </header>
+    </div>
 
-    <!-- Bento grid -->
-    <div class="bento">
+    <!-- Settings layout -->
+    <div class="settings-layout">
 
-      <!-- Account Security -->
-      <div class="card card-security">
-        <div class="card-title card-title-indigo">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-          </svg>
-          Account Security
-        </div>
-
-        <div class="sec-row">
-          <div>
-            <div class="sec-label">Neural Interface Key</div>
-            <div class="sec-sub" id="rotateSubLabel">Last rotated: 2 days ago</div>
-          </div>
-          <button class="btn-rotate" id="rotateKeyBtn">Rotate Key</button>
-        </div>
-
-        <div class="sec-row">
-          <div>
-            <div class="sec-label">Two-Factor Authentication</div>
-            <div class="sec-sub">Biometric scan required for major actions</div>
-          </div>
-          <div class="status-active">
-            <div class="status-dot"></div>
-            Active
-          </div>
-        </div>
-
-        <div class="sec-row">
-          <div>
-            <div class="sec-label">Linked Data Streams</div>
-            <div class="sec-sub">Manage external cognitive integrations</div>
-          </div>
-          <div class="streams-avatars">
-            <div class="stream-avatar sa-1">
-              <svg width="13" height="13" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-              </svg>
-            </div>
-            <div class="stream-avatar sa-2">
-              <svg width="13" height="13" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-              </svg>
-            </div>
-            <div class="stream-avatar sa-3">
-              <svg width="13" height="13" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <svg class="sec-deco" viewBox="0 0 200 200" fill="none" aria-hidden="true">
-          <path d="M100 10 L190 55 L190 145 L100 190 L10 145 L10 55 Z" stroke="#9fa7ff" stroke-width="2"/>
-          <path d="M100 40 L165 70 L165 130 L100 160 L35 130 L35 70 Z" stroke="#9fa7ff" stroke-width="1.5"/>
-          <path d="M100 70 L140 88 L140 112 L100 130 L60 112 L60 88 Z" stroke="#9fa7ff" stroke-width="1"/>
-        </svg>
-      </div>
-
-      <!-- Notifications -->
-      <div class="card card-alt card-notif">
-        <div class="card-title card-title-violet">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-          </svg>
+      <!-- Left: tab nav -->
+      <nav class="tabs-nav" aria-label="Settings sections">
+        <button class="tab-btn active" data-tab="account">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          Account
+        </button>
+        <button class="tab-btn" data-tab="notifications">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           Notifications
-        </div>
+        </button>
+        <button class="tab-btn" data-tab="appearance">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a5 5 0 0 1 5 5c0 2.76-2.24 5-5 5s-5-2.24-5-5a5 5 0 0 1 5-5z" opacity=".3"/></svg>
+          Appearance
+        </button>
+        <button class="tab-btn" data-tab="privacy">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Privacy & Security
+        </button>
+        <button class="tab-btn" data-tab="data">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          Data & Export
+        </button>
+      </nav>
 
-        <div class="toggle-row">
-          <div>
-            <div class="toggle-label">Weekly Activity</div>
-            <div class="toggle-sublabel">Get notified about weekly stats</div>
-          </div>
-          <button class="toggle-switch on" data-key="weekly" aria-label="Toggle weekly activity" aria-pressed="true" role="switch">
-            <div class="toggle-knob"></div>
-          </button>
-        </div>
+      <!-- Right: tab panels -->
+      <div class="tabs-content">
 
-        <div class="toggle-row">
-          <div>
-            <div class="toggle-label">Critical Alerts</div>
-            <div class="toggle-sublabel">Security and system alerts</div>
-          </div>
-          <button class="toggle-switch" data-key="alerts" aria-label="Toggle critical alerts" aria-pressed="false" role="switch">
-            <div class="toggle-knob"></div>
-          </button>
-        </div>
+        <!-- ── ACCOUNT ── -->
+        <section class="tab-panel active" id="tab-account">
 
-        <div class="toggle-row">
-          <div>
-            <div class="toggle-label">Syncing Updates</div>
-            <div class="toggle-sublabel">Background thread status</div>
-          </div>
-          <button class="toggle-switch on" data-key="sync" aria-label="Toggle syncing updates" aria-pressed="true" role="switch">
-            <div class="toggle-knob"></div>
-          </button>
-        </div>
+          <div class="section-card">
+            <div class="section-head">
+              <div class="section-icon si-indigo">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+              </div>
+              <div>
+                <div class="section-title">Profile Information</div>
+                <div class="section-desc">Your name and email address</div>
+              </div>
+            </div>
 
-        <div class="channel-section">
-          <div class="channel-label">Notification Channel</div>
-          <div class="channel-btns">
-            <button class="ch-btn" data-ch="email">Email</button>
-            <button class="ch-btn active" data-ch="haptic">Haptic</button>
-          </div>
-        </div>
-      </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label" for="fullNameInput">Full Name</label>
+                <input class="form-input" type="text" id="fullNameInput" placeholder="Your name" autocomplete="name">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="emailInput">Email Address</label>
+                <div class="input-with-badge">
+                  <input class="form-input" type="email" id="emailInput" placeholder="you@example.com" autocomplete="email">
+                  <span class="input-badge" id="verifiedBadge">Verified</span>
+                </div>
+              </div>
+            </div>
 
-      <!-- Interaction Preferences -->
-      <div class="card card-prefs">
-        <div class="prefs-intro">
-          <div class="prefs-heading">Interaction<br>Preferences</div>
-          <p class="prefs-body">Customize how the Cognitive Ether responds to your mental patterns. Adjust latency, visualization styles, and semantic depth.</p>
-        </div>
-
-        <div class="prefs-controls">
-
-          <div class="ctrl-group">
-            <div class="ctrl-label">Visualization Engine</div>
-            <div class="seg-track" data-group="viz">
-              <button class="seg-btn active" data-val="vector">Vector</button>
-              <button class="seg-btn" data-val="voxel">Voxel</button>
-              <button class="seg-btn" data-val="fluid">Fluid</button>
+            <div class="card-footer">
+              <button class="btn-primary" id="saveProfileBtn">Save Changes</button>
             </div>
           </div>
 
-          <div class="ctrl-group">
-            <div class="ctrl-label">Processing Priority</div>
-            <div class="seg-track" data-group="proc">
-              <button class="seg-btn" data-val="latency">Latency</button>
-              <button class="seg-btn active" data-val="precision">Precision</button>
+          <div class="section-card">
+            <div class="section-head">
+              <div class="section-icon si-violet">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </div>
+              <div>
+                <div class="section-title">Change Password</div>
+                <div class="section-desc">Update your account password</div>
+              </div>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-group full-width">
+                <label class="form-label" for="currentPwInput">Current Password</label>
+                <div class="password-wrap">
+                  <input class="form-input" type="password" id="currentPwInput" placeholder="Enter current password" autocomplete="current-password">
+                  <button class="pw-toggle" data-target="currentPwInput" aria-label="Show password">
+                    <svg class="eye-open" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <svg class="eye-closed" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="newPwInput">New Password</label>
+                <div class="password-wrap">
+                  <input class="form-input" type="password" id="newPwInput" placeholder="Min. 8 characters" autocomplete="new-password">
+                  <button class="pw-toggle" data-target="newPwInput" aria-label="Show password">
+                    <svg class="eye-open" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <svg class="eye-closed" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  </button>
+                </div>
+                <div class="pw-strength-wrap" id="pwStrengthWrap" style="display:none">
+                  <div class="pw-strength-bar"><div class="pw-strength-fill" id="pwStrengthFill"></div></div>
+                  <span class="pw-strength-label" id="pwStrengthLabel">Weak</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="confirmPwInput">Confirm New Password</label>
+                <div class="password-wrap">
+                  <input class="form-input" type="password" id="confirmPwInput" placeholder="Repeat new password" autocomplete="new-password">
+                  <button class="pw-toggle" data-target="confirmPwInput" aria-label="Show password">
+                    <svg class="eye-open" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <svg class="eye-closed" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-footer">
+              <button class="btn-primary" id="changePasswordBtn">Update Password</button>
             </div>
           </div>
 
-          <div class="ctrl-group full-width">
-            <div class="ctrl-label">Default Cognition Workspace</div>
-            <div class="ws-input-wrap">
-              <input
-                class="ws-input"
-                type="text"
-                id="workspaceInput"
-                placeholder="workspace-alpha-nine"
-                value="workspace-alpha-nine"
-                spellcheck="false"
-                autocomplete="off"
-              />
+        </section>
+
+        <!-- ── NOTIFICATIONS ── -->
+        <section class="tab-panel" id="tab-notifications">
+
+          <div class="section-card">
+            <div class="section-head">
+              <div class="section-icon si-violet">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              </div>
+              <div>
+                <div class="section-title">Notification Preferences</div>
+                <div class="section-desc">Choose what you want to be notified about</div>
+              </div>
+            </div>
+
+            <div class="toggle-list">
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Weekly Activity Digest</div>
+                  <div class="toggle-sub">Receive a summary of your weekly usage and trends</div>
+                </div>
+                <button class="toggle-switch on" data-key="weekly" aria-label="Toggle weekly digest" aria-pressed="true" role="switch">
+                  <div class="toggle-knob"></div>
+                </button>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Security Alerts</div>
+                  <div class="toggle-sub">Get notified of unusual sign-ins or account changes</div>
+                </div>
+                <button class="toggle-switch on" data-key="alerts" aria-label="Toggle security alerts" aria-pressed="true" role="switch">
+                  <div class="toggle-knob"></div>
+                </button>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Sync & Update Notifications</div>
+                  <div class="toggle-sub">Background sync status and new version alerts</div>
+                </div>
+                <button class="toggle-switch" data-key="sync" aria-label="Toggle sync updates" aria-pressed="false" role="switch">
+                  <div class="toggle-knob"></div>
+                </button>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Product Tips & Announcements</div>
+                  <div class="toggle-sub">Learn about new features and improvements</div>
+                </div>
+                <button class="toggle-switch" data-key="tips" aria-label="Toggle product tips" aria-pressed="false" role="switch">
+                  <div class="toggle-knob"></div>
+                </button>
+              </div>
             </div>
           </div>
 
-        </div>
-      </div>
+          <div class="section-card">
+            <div class="section-head">
+              <div class="section-icon si-mint">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              </div>
+              <div>
+                <div class="section-title">Notification Channel</div>
+                <div class="section-desc">How you prefer to receive notifications</div>
+              </div>
+            </div>
 
-    </div><!-- /bento -->
+            <div class="radio-list">
+              <label class="radio-row">
+                <input type="radio" name="notif_channel" value="email" id="ch_email">
+                <span class="radio-custom"></span>
+                <div class="radio-info">
+                  <div class="radio-label">Email</div>
+                  <div class="radio-sub">Sent to your registered email address</div>
+                </div>
+              </label>
+              <label class="radio-row">
+                <input type="radio" name="notif_channel" value="browser" id="ch_browser" checked>
+                <span class="radio-custom"></span>
+                <div class="radio-info">
+                  <div class="radio-label">Browser Notifications</div>
+                  <div class="radio-sub">Push alerts directly in your browser</div>
+                </div>
+              </label>
+              <label class="radio-row">
+                <input type="radio" name="notif_channel" value="none" id="ch_none">
+                <span class="radio-custom"></span>
+                <div class="radio-info">
+                  <div class="radio-label">None</div>
+                  <div class="radio-sub">Disable all notifications</div>
+                </div>
+              </label>
+            </div>
 
-    <!-- Footer -->
-    <footer class="footer">
-      <div class="footer-copy">Recall AI © 2026</div>
-      <div class="footer-links">
-        <div class="footer-link" id="privacyLink">Privacy Neural Protocol</div>
-        <div class="footer-link" id="termsLink">Terms &amp; Condition</div>
-      </div>
-    </footer>
+            <div class="card-footer">
+              <button class="btn-primary" id="saveNotifBtn">Save Preferences</button>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ── APPEARANCE ── -->
+        <section class="tab-panel" id="tab-appearance">
+
+          <div class="section-card">
+            <div class="section-head">
+              <div class="section-icon si-indigo">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+              </div>
+              <div>
+                <div class="section-title">Theme</div>
+                <div class="section-desc">Choose your preferred color theme</div>
+              </div>
+            </div>
+
+            <!-- Only Dark and Light — System removed -->
+            <div class="theme-grid">
+              <button class="theme-card active" data-theme="dark">
+                <div class="theme-preview tp-dark-preview">
+                  <div class="tp-sidebar-dark"></div>
+                  <div class="tp-content-dark">
+                    <div class="tp-bar-dark"></div>
+                    <div class="tp-bar-dark short"></div>
+                  </div>
+                </div>
+                <div class="theme-name">Dark</div>
+                <div class="theme-check">
+                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+              </button>
+              <button class="theme-card" data-theme="light">
+                <div class="theme-preview tp-light-preview">
+                  <div class="tp-sidebar-light"></div>
+                  <div class="tp-content-light">
+                    <div class="tp-bar-light"></div>
+                    <div class="tp-bar-light short"></div>
+                  </div>
+                </div>
+                <div class="theme-name">Light</div>
+                <div class="theme-check" style="display:none">
+                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-head">
+              <div class="section-icon si-violet">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+              </div>
+              <div>
+                <div class="section-title">Display</div>
+                <div class="section-desc">Font size and layout preferences</div>
+              </div>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label" for="fontSizeSelect">Font Size</label>
+                <div class="select-wrap">
+                  <select class="form-select" id="fontSizeSelect">
+                    <option value="small">Small</option>
+                    <option value="medium" selected>Medium (Default)</option>
+                    <option value="large">Large</option>
+                  </select>
+                  <svg class="select-chevron" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="languageSelect">Language</label>
+                <div class="select-wrap">
+                  <select class="form-select" id="languageSelect">
+                    <option value="en" selected>English</option>
+                    <option value="es">Español</option>
+                    <option value="fr">Français</option>
+                    <option value="de">Deutsch</option>
+                    <option value="ja">日本語</option>
+                    <option value="zh">中文</option>
+                  </select>
+                  <svg class="select-chevron" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+            </div>
+
+            <div class="toggle-list" style="margin-top:8px">
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Compact Mode</div>
+                  <div class="toggle-sub">Reduce spacing for a denser layout</div>
+                </div>
+                <button class="toggle-switch" data-key="compact" aria-label="Toggle compact mode" aria-pressed="false" role="switch">
+                  <div class="toggle-knob"></div>
+                </button>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Reduce Motion</div>
+                  <div class="toggle-sub">Minimize animations throughout the interface</div>
+                </div>
+                <button class="toggle-switch" data-key="reduce_motion" aria-label="Toggle reduce motion" aria-pressed="false" role="switch">
+                  <div class="toggle-knob"></div>
+                </button>
+              </div>
+            </div>
+
+            <div class="card-footer">
+              <button class="btn-primary" id="saveAppearanceBtn">Save Preferences</button>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ── PRIVACY & SECURITY ── -->
+        <section class="tab-panel" id="tab-privacy">
+
+          <div class="section-card">
+            <div class="section-head">
+              <div class="section-icon si-indigo">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <div>
+                <div class="section-title">Security</div>
+                <div class="section-desc">Two-factor authentication and session management</div>
+              </div>
+            </div>
+
+            <div class="toggle-list">
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Two-Factor Authentication</div>
+                  <div class="toggle-sub">Require a verification code when signing in</div>
+                </div>
+                <button class="toggle-switch" data-key="2fa" aria-label="Toggle 2FA" aria-pressed="false" role="switch">
+                  <div class="toggle-knob"></div>
+                </button>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Login Alerts</div>
+                  <div class="toggle-sub">Get an email whenever someone signs into your account</div>
+                </div>
+                <button class="toggle-switch on" data-key="login_alerts" aria-label="Toggle login alerts" aria-pressed="true" role="switch">
+                  <div class="toggle-knob"></div>
+                </button>
+              </div>
+            </div>
+
+            <div class="session-section">
+              <div class="session-label">Active Sessions</div>
+              <div class="session-item">
+                <div class="session-icon">
+                  <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                </div>
+                <div class="session-info">
+                  <div class="session-name">Current device — Chrome Extension</div>
+                  <div class="session-meta">Active now · This device</div>
+                </div>
+                <span class="session-current">Current</span>
+              </div>
+            </div>
+
+            <div class="card-footer">
+              <button class="btn-outline" id="revokeSessionsBtn">Sign Out All Other Devices</button>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-head">
+              <div class="section-icon si-mint">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </div>
+              <div>
+                <div class="section-title">Privacy Controls</div>
+                <div class="section-desc">Control what data Recall AI collects and stores</div>
+              </div>
+            </div>
+
+            <div class="toggle-list">
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Save Search History</div>
+                  <div class="toggle-sub">Store your AI prompt history for later recall</div>
+                </div>
+                <button class="toggle-switch on" data-key="save_history" aria-label="Toggle save history" aria-pressed="true" role="switch">
+                  <div class="toggle-knob"></div>
+                </button>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Analytics</div>
+                  <div class="toggle-sub">Help improve Recall AI by sharing anonymous usage data</div>
+                </div>
+                <button class="toggle-switch on" data-key="analytics" aria-label="Toggle analytics" aria-pressed="true" role="switch">
+                  <div class="toggle-knob"></div>
+                </button>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Auto-Tag Prompts</div>
+                  <div class="toggle-sub">Automatically categorize your saved prompts using AI</div>
+                </div>
+                <button class="toggle-switch on" data-key="auto_tag" aria-label="Toggle auto-tag" aria-pressed="true" role="switch">
+                  <div class="toggle-knob"></div>
+                </button>
+              </div>
+            </div>
+
+            <div class="card-footer">
+              <button class="btn-primary" id="savePrivacyBtn">Save Privacy Settings</button>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ── DATA & EXPORT ── -->
+        <section class="tab-panel" id="tab-data">
+
+          <div class="section-card">
+            <div class="section-head">
+              <div class="section-icon si-mint">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </div>
+              <div>
+                <div class="section-title">Export Your Data</div>
+                <div class="section-desc">Download a copy of your saved prompts and history</div>
+              </div>
+            </div>
+
+            <p class="section-note">Export all your saved AI prompts, search history, and settings. Your data belongs to you.</p>
+
+            <div class="export-grid">
+              <button class="export-card" id="exportJsonBtn">
+                <div class="export-icon">
+                  <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                </div>
+                <div class="export-name">JSON</div>
+                <div class="export-desc">Full structured data</div>
+              </button>
+              <button class="export-card" id="exportCsvBtn">
+                <div class="export-icon">
+                  <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                </div>
+                <div class="export-name">CSV</div>
+                <div class="export-desc">Spreadsheet-friendly</div>
+              </button>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-head">
+              <div class="section-icon si-violet">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+              </div>
+              <div>
+                <div class="section-title">Data Management</div>
+                <div class="section-desc">Clear or manage your stored data</div>
+              </div>
+            </div>
+
+            <div class="data-actions">
+              <div class="data-action-row">
+                <div>
+                  <div class="da-title">Clear Search History</div>
+                  <div class="da-desc">Remove all saved prompts and search records</div>
+                </div>
+                <button class="btn-outline btn-warn" id="clearHistoryBtn">Clear History</button>
+              </div>
+              <div class="data-action-row">
+                <div>
+                  <div class="da-title">Clear Cache</div>
+                  <div class="da-desc">Free up local storage used by the extension</div>
+                </div>
+                <button class="btn-outline" id="clearCacheBtn">Clear Cache</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-card danger-card">
+            <div class="section-head">
+              <div class="section-icon si-danger">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+              </div>
+              <div>
+                <div class="section-title danger-title">Danger Zone</div>
+                <div class="section-desc">Irreversible actions — proceed with caution</div>
+              </div>
+            </div>
+
+            <div class="danger-body">
+              <div class="danger-text">Permanently delete your account and all associated data. This action <strong>cannot be undone</strong>.</div>
+              <button class="btn-danger" id="deleteAccountBtn">Delete My Account</button>
+            </div>
+          </div>
+
+        </section>
+
+      </div><!-- /tabs-content -->
+    </div><!-- /settings-layout -->
 
   </main>
 
