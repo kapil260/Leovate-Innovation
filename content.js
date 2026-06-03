@@ -222,7 +222,7 @@ function injectNetworkInterceptor() {
     return origFetch.apply(this, arguments);
   };
 
-  /* ── Wrap XHR ── */
+/* ── Wrap XHR (Improved for Blob/FormData safety) ── */
   const origOpen = XMLHttpRequest.prototype.open;
   const origSend = XMLHttpRequest.prototype.send;
   
@@ -234,18 +234,26 @@ function injectNetworkInterceptor() {
   XMLHttpRequest.prototype.send = function(body) {
     const url = this.__recallUrl || '';
     if (isPromptRequest(url) && body) {
-      let bodyText = body;
-      if (typeof bodyText !== 'string') {
-        try { bodyText = new TextDecoder().decode(bodyText); } catch(e) {}
-      }
-      const prompt = extractPrompt(url, bodyText);
-      if (prompt) {
-        window.postMessage({ __recallai: true, prompt, source: location.hostname }, '*');
+      // Logic for strings (Standard JSON prompts)
+      if (typeof body === 'string') {
+        const prompt = extractPrompt(url, body);
+        if (prompt) {
+          window.postMessage({ __recallai: true, prompt, source: location.hostname }, '*');
+        }
+      } 
+      // Logic for Blobs (Large prompts or specific file-backed uploads)
+      else if (body instanceof Blob) {
+        body.text().then(text => {
+          const prompt = extractPrompt(url, text);
+          if (prompt) {
+            window.postMessage({ __recallai: true, prompt, source: location.hostname }, '*');
+          }
+        }).catch(() => { /* Silent fail for binary blobs */ });
       }
     }
     return origSend.apply(this, arguments);
   };
-
+  
   console.log('[Recall AI] 🔌 Network interceptor active on', HOST);
 })();
   `;
