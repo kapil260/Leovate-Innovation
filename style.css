@@ -24,8 +24,8 @@
       --radius-btn:     9999px;
       --radius-icon:    12px;
 
-      --font-display:   'Space Grotesk', sans-serif;
-      --font-body:      'Manrope', sans-serif;
+      --font-display:   'Space Grotesk', 'Inter', system-ui, -apple-system, sans-serif;
+      --font-body:      'Manrope', 'Inter', system-ui, -apple-system, sans-serif;
 
       --transition-fast: 0.2s ease;
       --transition-mid:  0.35s ease;

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recall AI — Remember Everything</title>
+  <style>
+    /* System font fallback — Google Fonts blocked by extension CSP */
+    :root {
+      --font-primary: 'Space Grotesk', 'Inter', system-ui, -apple-system, sans-serif;
+      --font-secondary: 'Manrope', 'Inter', system-ui, -apple-system, sans-serif;
+    }
+  </style>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Background -->
+<div class="bg-layer">
+  <div class="bg-gradient"></div>
+  <div class="bg-blob-1"></div>
+  <div class="bg-blob-2"></div>
+  <div class="bg-blob-3"></div>
+  <div class="bg-grid"></div>
+</div>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <a href="#" class="nav-brand">
+    <div class="nav-logo-icon">
+      <img src="background0.png" alt="Recall AI Logo" style="width:100%;height:100%;object-fit:contain;border-radius:6px;">
+    </div>
+    <span class="nav-brand-name">Recall AI</span>
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="#features" data-scroll="features">Features</a>
+    <a class="nav-link" href="#how" data-scroll="how">How It Works</a>
+    
+  </div>
+  <div class="nav-actions">
+    <a href="../login-page/login.html" class="btn-ghost">Log in</a>
+    <a href="../home-page/Sigup.html" class="btn-primary">Get Started</a>
+  </div>
+  <div class="hamburger" id="hamburger" onclick="toggleMenu()">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<!-- Mobile menu -->
+<div class="mobile-menu" id="mobileMenu">
+  <a class="mobile-nav-link" href="#features" data-scroll="features">Features</a>
+  <a class="mobile-nav-link" href="#how" data-scroll="how">How It Works</a>
+  
+  <div class="mobile-menu-actions">
+    <a href="../login-page/login.html" class="btn-ghost">Log in</a>
+    <a href="../home-page/Sigup.html" class="btn-primary">Get Started</a>
+  </div>
+</div>
+
+<!-- Page -->
+<div class="page-wrapper">
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-badge">
+      <div class="hero-badge-dot"></div>
+      <span class="hero-badge-text">Neural Browsing Intelligence — V1.0.0 Ether Core</span>
+    </div>
+
+    <h1 class="hero-headline">
+      <span class="line-light">Interface with</span>
+      <span class="line-grad">the Infinite.</span>
+    </h1>
+
+    <p class="hero-sub">
+      Recall AI captures, indexes, and semantically understands every web page you visit.
+      Search your entire browsing history with the power of natural language.
+    </p>
+
+    <div class="hero-cta-group">
+      <a href="../home-page/Sigup.html" class="btn-hero-primary">
+        Add to Chrome — Free
+        <svg fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </a>
+      <a href="#how" class="btn-hero-secondary">
+        <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+        See how it works
+      </a>
+    </div>
+
+    <div class="hero-trust">
+      <div class="hero-trust-avatars">
+        <div class="trust-avatar ta-1">KS</div>
+        <div class="trust-avatar ta-2">AR</div>
+        <div class="trust-avatar ta-3">MP</div>
+        <div class="trust-avatar ta-4">JL</div>
+      </div>
+      <span class="hero-trust-text">Trusted by 2,400+ researchers & developers</span>
+    </div>
+
+    <!-- Browser mockup -->
+    <div class="hero-visual">
+      <div class="browser-mockup">
+        <div class="browser-bar">
+          <div class="browser-dots">
+            <div class="browser-dot dot-red"></div>
+            <div class="browser-dot dot-yel"></div>
+            <div class="browser-dot dot-grn"></div>
+          </div>
+          <div class="browser-url">
+            <div class="browser-url-lock">
+              <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <span class="browser-url-text">recall.ai/dashboard</span>
+          </div>
+        </div>
+        <div class="mockup-content">
+          <div class="mockup-sidebar">
+            <div class="mockup-sidebar-item active">
+              <div class="mockup-sidebar-dot" style="background:#818cf8"></div>
+              Dashboard
+            </div>
+            <div class="mockup-sidebar-item">
+              <div class="mockup-sidebar-dot" style="background:#475569"></div>
+              History
+            </div>
+            <div class="mockup-sidebar-item">
+              <div class="mockup-sidebar-dot" style="background:#475569"></div>
+              Search
+            </div>
+            <div class="mockup-sidebar-item">
+              <div class="mockup-sidebar-dot" style="background:#475569"></div>
+              Settings
+            </div>
+          </div>
+          <div class="mockup-main">
+            <div class="mockup-search">
+              <svg style="width:14px;height:14px;color:#475569;flex-shrink:0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <span class="mockup-search-text">Search your browsing history with AI…</span>
+            </div>
+            <div class="mockup-cards">
+              <div class="mockup-card">
+                <div class="mockup-card-bar" style="background:#818cf8"></div>
+                <div class="mockup-card-line"></div>
+                <div class="mockup-card-line short"></div>
+              </div>
+              <div class="mockup-card">
+                <div class="mockup-card-bar" style="background:#22d3ee"></div>
+                <div class="mockup-card-line"></div>
+                <div class="mockup-card-line short"></div>
+              </div>
+              <div class="mockup-card">
+                <div class="mockup-card-bar" style="background:#a78bfa"></div>
+                <div class="mockup-card-line"></div>
+                <div class="mockup-card-line short"></div>
+              </div>
+            </div>
+            <div class="mockup-activity">
+              <div class="mockup-row">
+                <div class="mockup-row-icon" style="background:rgba(129,140,248,0.15)"></div>
+                <div class="mockup-row-lines">
+                  <div class="mockup-row-line"></div>
+                  <div class="mockup-row-line short"></div>
+                </div>
+              </div>
+              <div class="mockup-row">
+                <div class="mockup-row-icon" style="background:rgba(34,211,238,0.12)"></div>
+                <div class="mockup-row-lines">
+                  <div class="mockup-row-line"></div>
+                  <div class="mockup-row-line short"></div>
+                </div>
+              </div>
+              <div class="mockup-row">
+                <div class="mockup-row-icon" style="background:rgba(167,139,250,0.12)"></div>
+                <div class="mockup-row-lines">
+                  <div class="mockup-row-line"></div>
+                  <div class="mockup-row-line short"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats bar -->
+  <div class="stats-bar">
+    <div class="stats-bar-inner animate-up">
+      <div class="stat-item">
+        <div class="stat-value teal">99.4%</div>
+        <div class="stat-label">Neural Accuracy</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <div class="stat-value blue">2.4ms</div>
+        <div class="stat-label">Latent Sync</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <div class="stat-value purple">2.4K+</div>
+        <div class="stat-label">Active Users</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <div class="stat-value teal">∞</div>
+        <div class="stat-label">Pages Indexed</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <section class="section" id="features">
+    <div class="animate-up">
+      <div class="section-label">Capabilities</div>
+      <h2 class="section-title">Everything your memory<br><span>wishes it had.</span></h2>
+      <p class="section-sub">Recall AI bridges the gap between raw browsing data and sentient insight — giving you superhuman recall.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card featured animate-up">
+        <div class="feature-icon icon-blue">
+          <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </div>
+        <div class="feature-tag">Core</div>
+        <div class="feature-title">Semantic Search</div>
+        <div class="feature-desc">Ask questions in plain English and Recall AI finds the exact page you remember — even if you've forgotten the URL, title, or site name. Our neural architecture understands context, not just keywords.</div>
+      </div>
+
+      <div class="feature-card animate-up">
+        <div class="feature-icon icon-teal">
+          <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10H12V2z"/><path d="M12 2a10 10 0 0 1 10 10"/><circle cx="12" cy="12" r="3"/></svg>
+        </div>
+        <div class="feature-title">Auto Indexing</div>
+        <div class="feature-desc">Every page you visit is silently captured and indexed in real time — zero friction, zero effort on your part.</div>
+      </div>
+
+      <div class="feature-card animate-up">
+        <div class="feature-icon icon-purple">
+          <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div class="feature-title">AI Summaries</div>
+        <div class="feature-desc">Instantly generate concise summaries of any captured page — powered by Gemini neural synthesis.</div>
+      </div>
+
+      <div class="feature-card animate-up">
+        <div class="feature-icon icon-green">
+          <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="feature-title">Activity Timeline</div>
+        <div class="feature-desc">Visualize your browsing patterns across categories, time, and topics in a beautiful cognitive timeline.</div>
+      </div>
+
+      <div class="feature-card animate-up">
+        <div class="feature-icon icon-amber">
+          <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div class="feature-title">Privacy First</div>
+        <div class="feature-desc">Your data stays yours. All processing is secured with end-to-end encryption and zero third-party data sharing.</div>
+      </div>
+
+      <div class="feature-card animate-up">
+        <div class="feature-icon icon-blue">
+          <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        </div>
+        <div class="feature-title">Smart Tagging</div>
+        <div class="feature-desc">Automatic category detection — Tech, Science, Finance, Health and more — so your knowledge is always organized.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="how-section" id="how">
+    <div class="animate-up">
+      <div class="section-label">Process</div>
+      <h2 class="section-title">Three steps to<br><span>perfect recall.</span></h2>
+      <p class="section-sub">Getting started takes less than 60 seconds. No setup, no configuration — just install and forget.</p>
+    </div>
+    <div class="steps-wrapper">
+      <div class="step animate-up">
+        <div class="step-number">01</div>
+        <div class="step-title">Install the Extension</div>
+        <div class="step-desc">Add Recall AI to Chrome with a single click. Create your account and your neural session begins immediately.</div>
+      </div>
+      <div class="step animate-up">
+        <div class="step-number">02</div>
+        <div class="step-title">Browse Normally</div>
+        <div class="step-desc">Recall AI silently captures and semantically indexes every page you visit. No interruptions, no slow-downs.</div>
+      </div>
+      <div class="step animate-up">
+        <div class="step-number">03</div>
+        <div class="step-title">Search Anything</div>
+        <div class="step-desc">Open the dashboard and ask anything in plain English. Recall surfaces the exact content from your past in milliseconds.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div class="cta-card animate-up">
+      <h2 class="cta-headline">
+        Begin your<br><span>cognitive evolution.</span>
+      </h2>
+      <p class="cta-sub">
+        Join thousands of researchers, developers, and knowledge workers who have already augmented their memory with Recall AI.
+      </p>
+      <div class="cta-buttons">
+        <a href="../home-page/Sigup.html" class="btn-hero-primary">
+          Create Free Account
+          <svg fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </a>
+        <a href="../login-page/login.html" class="btn-hero-secondary">
+          Already have an account?
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-brand">
+      <div class="nav-logo-icon" style="width:28px;height:28px;border-radius:8px">
+        <img src="background0.png" alt="Recall AI Logo" style="width:100%;height:100%;object-fit:contain;border-radius:6px;">
+      </div>
+      <span class="footer-brand-name">Recall AI</span>
+    </div>
+    <div class="footer-links">
+      <a class="footer-link">Privacy</a>
+      <a class="footer-link">Terms</a>
+      <a class="footer-link">Support</a>
+      <a class="footer-link">Changelog</a>
+    </div>
+    <span class="footer-right">V1.0.0 Ether Core &nbsp;·&nbsp; © 2025 Recall AI</span>
+  </footer>
+
+</div><!-- /page-wrapper -->
+
+<script src="script.js"></script>
+</body>
+</html>
