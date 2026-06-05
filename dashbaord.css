@@ -1363,58 +1363,6 @@
   justify-content: flex-start;
 }
 
-/* ─────────────────────────────────────────
-   SUBSCRIPTION NAV ITEM
-───────────────────────────────────────── */
-.link-subscription-css-transform {
-  padding: 0px 0px 0px 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 0px;
-  align-items: flex-start;
-  justify-content: flex-start;
-  flex-shrink: 0;
-  width: 239px;
-  position: relative;
-}
-
-.link-subscription {
-  background: rgba(99, 102, 241, 0.1);
-  border-radius: 12px;
-  border-style: solid;
-  border-color: #818cf8;
-  border-width: 0px 2px 0px 0px;
-  padding: 12px 16px 12px 16px;
-  display: flex;
-  flex-direction: row;
-  gap: 16px;
-  align-items: center;
-  justify-content: flex-start;
-  flex-shrink: 0;
-  position: relative;
-  color: #a5b4fc;
-  transition: opacity 0.2s ease;
-}
-
-.link-subscription:hover {
-  opacity: 0.85;
-}
-
-.text-subscription {
-  color: #a5b4fc;
-  text-align: left;
-  font-family: "Manrope-Regular", "Manrope", sans-serif;
-  font-size: 14px;
-  line-height: 20px;
-  letter-spacing: 1.4px;
-  font-weight: 400;
-  text-transform: uppercase;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-}
-
 /* User profile card */
 .margin3 {
   margin-top: auto;
@@ -1592,24 +1540,29 @@
 
 /* ─────────────────────────────────────────
    RESPONSIVE — TABLET (≤ 1024px)
+   Sidebar collapses to 72px icon+profile rail
 ───────────────────────────────────────── */
 @media (max-width: 1024px) {
   .dashboard-recall-ai {
-    padding-left: 0;
+    padding-left: 72px;
   }
 
   .aside-side-nav-bar {
     width: 72px;
     padding: 20px 12px;
-    gap: 24px;
+    gap: 20px;
     overflow: hidden;
   }
 
+  /* Hide text labels but KEEP profile card visible */
   .container33,
-  .text12,
-  .container7,
-  .user-role,
-  .ronik-thapa {
+  .text12 {
+    display: none;
+  }
+
+  /* Hide nav item text labels only */
+  .link-active-tab-dashboard .container7,
+  .link .container7 {
     display: none;
   }
 
@@ -1629,26 +1582,25 @@
     justify-content: center;
   }
 
-  .link-subscription-css-transform {
-    width: auto;
-    padding-left: 0;
-  }
-
-  .link-subscription {
-    padding: 12px;
+  /* Profile card: icon-only — hide name/email, keep avatar */
+  .background-border8 {
+    padding: 10px;
     justify-content: center;
   }
 
-  .text-subscription {
+  .container37 {
+    justify-content: center;
+    gap: 0;
+  }
+
+  .ronik-thapa,
+  .user-role,
+  .container37 > svg {
     display: none;
   }
 
-  .main-canvas {
-    padding-left: 72px;
-  }
-
-  .dashboard-recall-ai {
-    padding-left: 72px;
+  .container37 > .container7 {
+    display: none;
   }
 
   .section {
@@ -1657,13 +1609,49 @@
 }
 
 /* ─────────────────────────────────────────
-   RESPONSIVE — MOBILE (≤ 768px)
+   RESPONSIVE — NARROW SIDE PANEL (≤ 780px)
+   Sidebar shrinks to 56px icon rail
 ───────────────────────────────────────── */
-@media (max-width: 768px) {
+@media (max-width: 780px) {
+  .dashboard-recall-ai {
+    padding-left: 56px;
+  }
+
+  .aside-side-nav-bar {
+    width: 56px;
+    padding: 16px 8px;
+    gap: 16px;
+    overflow: hidden;
+  }
+
+  .background3 {
+    width: 32px;
+    height: 32px;
+  }
+
+  .link-active-tab-dashboard,
+  .link {
+    padding: 10px;
+    justify-content: center;
+  }
+
+  .background-border8 {
+    padding: 8px;
+  }
+
+  .user-avatar {
+    width: 34px;
+    height: 34px;
+  }
+
+  .section {
+    padding: 16px;
+  }
+
   .dashboard-content-layout-editorial-asymmetry {
     grid-template-columns: 1fr;
     grid-template-rows: auto auto;
-    gap: 32px;
+    gap: 24px;
   }
 
   .left-column-activity-filters {
@@ -1677,33 +1665,138 @@
     grid-row: 2 / span 1;
   }
 
-  .container17 {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto;
+  .text4 {
+    font-size: 22px;
+    line-height: 30px;
   }
 
-  .history-card-1, .history-card-2,
-  .history-card-3, .history-card-4 {
+  .button-fab-for-main-screen {
+    width: 52px;
+    height: 52px;
+    right: 16px;
+    bottom: 20px;
+  }
+}
+
+/* ─────────────────────────────────────────
+   RESPONSIVE — VERY NARROW PANEL (≤ 480px)
+   Sidebar moves to bottom tab bar
+───────────────────────────────────────── */
+@media (max-width: 480px) {
+  .dashboard-recall-ai {
+    padding-left: 0;
+    padding-bottom: 56px;
+  }
+
+  .aside-side-nav-bar {
+    width: 100%;
+    min-height: unset;
+    height: 52px;
+    flex-direction: row;
+    position: fixed;
+    left: 0; right: 0;
+    bottom: 0; top: unset;
+    padding: 0 8px;
+    gap: 0;
+    border-right: none;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    align-items: center;
+    justify-content: space-around;
+    z-index: 50;
+  }
+
+  /* Hide brand, profile card in bottom bar */
+  .margin2 {
+    display: none;
+  }
+
+  .margin3 {
+    display: none;
+  }
+
+  /* Nav as horizontal row */
+  .nav {
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-around;
+    gap: 0;
+    flex: unset;
+    align-self: stretch;
+    align-items: center;
+  }
+
+  .link-active-tab-dashboard-css-transform {
+    flex: 1;
+    width: auto;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+  }
+
+  .link-active-tab-dashboard,
+  .link {
+    flex: 1;
+    padding: 10px 6px;
+    justify-content: center;
+    border-radius: 8px;
+    gap: 0;
+  }
+
+  /* Content full width */
+  .dashboard-content-layout-editorial-asymmetry {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .left-column-activity-filters,
+  .right-column-chat-history {
     grid-column: 1 / span 1;
-    grid-row: auto;
+  }
+
+  .section {
+    padding: 12px;
+  }
+
+  .text4 {
+    font-size: 20px;
+    line-height: 26px;
   }
 
   .container9 {
     flex-direction: column;
     align-items: flex-start;
-    gap: 20px;
+    gap: 16px;
   }
 
   .overlay-border {
     width: 100%;
   }
 
-  .text4 {
-    font-size: 22px;
-    line-height: 30px;
-  }
-
-  .section {
-    padding: 16px;
+  /* FAB above bottom bar */
+  .button-fab-for-main-screen {
+    bottom: 64px;
+    right: 12px;
+    width: 50px;
+    height: 50px;
   }
 }
+
+/* ── Profile card: clickable + initials avatar ── */
+.profile-card-clickable {
+  transition: background 0.18s, border-color 0.18s;
+}
+.profile-card-clickable:hover {
+  background: #0d1e3a !important;
+  border-color: rgba(159, 167, 255, 0.2) !important;
+}
+.profile-card-clickable:active {
+  background: #0f2247 !important;
+}
+.user-avatar-initials {
+  background: linear-gradient(135deg, #3b4cff 0%, #9fa7ff 100%);
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
