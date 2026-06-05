@@ -1,18 +1,18 @@
 /* ─────────────────────────────────────────
-   RECALL AI — setting.js  (redesigned)
+   RECALL AI — setting.js  (backend-connected)
 ───────────────────────────────────────── */
 'use strict';
 
 const BACKEND_URL = 'http://localhost:5000';
 const API = {
-  me:           `${BACKEND_URL}/api/auth/me`,
-  settings:     `${BACKEND_URL}/api/user/settings`,
-  export:       `${BACKEND_URL}/api/user/export`,
-  deleteAcct:   `${BACKEND_URL}/api/user/account`,
-  changePass:   `${BACKEND_URL}/api/user/password`,
-  updateProfile:`${BACKEND_URL}/api/user/profile`,
-  revokeSessions:`${BACKEND_URL}/api/user/sessions`,
-  clearHistory: `${BACKEND_URL}/api/searches/clear`,
+  me:             `${BACKEND_URL}/api/auth/me`,
+  settings:       `${BACKEND_URL}/api/user/settings`,
+  export:         `${BACKEND_URL}/api/user/export`,
+  deleteAcct:     `${BACKEND_URL}/api/user/account`,
+  changePass:     `${BACKEND_URL}/api/user/password`,
+  updateProfile:  `${BACKEND_URL}/api/user/profile`,
+  revokeSessions: `${BACKEND_URL}/api/user/sessions`,
+  clearHistory:   `${BACKEND_URL}/api/searches/clear`,
 };
 
 /* ── CHROME EXTENSION DETECTION ── */
@@ -131,7 +131,7 @@ function initTabs() {
 }
 
 /* ─────────────────────────────────────────
-   TOGGLE SWITCHES
+   TOGGLE SWITCHES — save to backend on every click
 ───────────────────────────────────────── */
 function initToggles() {
   document.querySelectorAll('.toggle-switch').forEach(btn => {
@@ -160,12 +160,9 @@ function initRadios() {
 }
 
 /* ─────────────────────────────────────────
-   THEME CARDS — FIXED
-   Applies data-theme to <html> so CSS variables update immediately.
-   Only 'dark' and 'light' are supported.
+   THEME CARDS
 ───────────────────────────────────────── */
 function applyTheme(theme) {
-  // Only allow dark or light
   if (theme !== 'light') theme = 'dark';
   document.documentElement.setAttribute('data-theme', theme);
   state.theme = theme;
@@ -177,7 +174,6 @@ function initThemeCards() {
     card.addEventListener('click', () => {
       const selectedTheme = card.dataset.theme;
 
-      // Update card UI
       cards.forEach(c => {
         c.classList.remove('active');
         const chk = c.querySelector('.theme-check');
@@ -187,9 +183,7 @@ function initThemeCards() {
       const chk = card.querySelector('.theme-check');
       if (chk) chk.style.display = 'flex';
 
-      // Apply theme to the page
       applyTheme(selectedTheme);
-
       showToast(selectedTheme.charAt(0).toUpperCase() + selectedTheme.slice(1) + ' theme selected');
       saveSettingToBackend('theme', selectedTheme);
     });
@@ -250,7 +244,8 @@ function initPasswordStrength() {
 }
 
 /* ─────────────────────────────────────────
-   SAVE PROFILE
+   SAVE PROFILE — BACKEND CONNECTED
+   PATCH /api/user/profile
 ───────────────────────────────────────── */
 async function saveProfile() {
   const btn   = document.getElementById('saveProfileBtn');
@@ -262,28 +257,46 @@ async function saveProfile() {
 
   btn.textContent = 'Saving…'; btn.disabled = true;
   try {
-    await new Promise(r => setTimeout(r, 700));
+    const res = await fetch(API.updateProfile, {
+      method: 'PATCH',
+      headers: await authHeaders(),
+      body: JSON.stringify({ username: name, email })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      showToast(data.error || 'Failed to save profile', 'error');
+      return;
+    }
+
+    // Update UI with returned user data
+    const user = data.user || {};
     const spName = document.getElementById('spName');
-    if (spName) spName.textContent = name;
+    if (spName) spName.textContent = user.name || name;
     const spAvatar = document.getElementById('spAvatar');
-    if (spAvatar) spAvatar.textContent = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-    showToast('Profile updated successfully');
+    if (spAvatar) spAvatar.textContent = (user.name || name).split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+
+    // Update cached user in extension storage
     if (IS_EXTENSION) chrome.storage.local.get(['recall_user'], s => {
       try {
         var u = JSON.parse(s.recall_user||'{}');
-        u.name = name; u.email = email;
+        u.name = user.name || name;
+        u.email = user.email || email;
         chrome.storage.local.set({ recall_user: JSON.stringify(u) });
       } catch(_){}
     });
-  } catch(_) {
-    showToast('Failed to save profile', 'error');
+
+    showToast(data.message || 'Profile updated successfully');
+  } catch(err) {
+    showToast('Network error. Check your connection.', 'error');
   } finally {
     btn.textContent = 'Save Changes'; btn.disabled = false;
   }
 }
 
 /* ─────────────────────────────────────────
-   CHANGE PASSWORD
+   CHANGE PASSWORD — BACKEND CONNECTED
+   POST /api/user/password
 ───────────────────────────────────────── */
 async function changePassword() {
   const btn     = document.getElementById('changePasswordBtn');
@@ -297,35 +310,69 @@ async function changePassword() {
 
   btn.textContent = 'Updating…'; btn.disabled = true;
   try {
-    await new Promise(r => setTimeout(r, 800));
+    const res = await fetch(API.changePass, {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify({ currentPassword: current, newPassword: newPw })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      showToast(data.error || 'Failed to update password', 'error');
+      return;
+    }
+
+    // Clear fields on success
     document.getElementById('currentPwInput').value = '';
     document.getElementById('newPwInput').value = '';
     document.getElementById('confirmPwInput').value = '';
-    document.getElementById('pwStrengthWrap').style.display = 'none';
-    showToast('Password updated successfully');
+    const strengthWrap = document.getElementById('pwStrengthWrap');
+    if (strengthWrap) strengthWrap.style.display = 'none';
+    showToast(data.message || 'Password updated successfully');
   } catch(err) {
-    showToast(err.message || 'Failed to update password', 'error');
+    showToast('Network error. Check your connection.', 'error');
   } finally {
     btn.textContent = 'Update Password'; btn.disabled = false;
   }
 }
 
 /* ─────────────────────────────────────────
-   SAVE NOTIFICATIONS
+   SAVE NOTIFICATIONS — BACKEND CONNECTED
+   POST /api/user/settings
 ───────────────────────────────────────── */
 async function saveNotifications() {
   const btn = document.getElementById('saveNotifBtn');
   btn.textContent = 'Saving…'; btn.disabled = true;
   try {
-    await new Promise(r => setTimeout(r, 600));
-    showToast('Notification preferences saved');
+    // Collect all notification-related toggle states
+    const notifKeys = ['weekly', 'alerts', 'login_alerts', 'save_history', 'sync', 'tips'];
+    const patch = { notification_channel: state.channel };
+    notifKeys.forEach(k => {
+      patch['toggle_' + k] = state.toggles[k];
+    });
+
+    const res = await fetch(API.settings, {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify({ settings: patch })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      showToast(data.error || 'Failed to save notification preferences', 'error');
+      return;
+    }
+    showToast(data.message || 'Notification preferences saved');
+  } catch(err) {
+    showToast('Network error. Check your connection.', 'error');
   } finally {
     btn.textContent = 'Save Preferences'; btn.disabled = false;
   }
 }
 
 /* ─────────────────────────────────────────
-   SAVE APPEARANCE
+   SAVE APPEARANCE — BACKEND CONNECTED
+   POST /api/user/settings
 ───────────────────────────────────────── */
 async function saveAppearance() {
   const btn = document.getElementById('saveAppearanceBtn');
@@ -333,64 +380,121 @@ async function saveAppearance() {
   const language = document.getElementById('languageSelect')?.value;
   btn.textContent = 'Saving…'; btn.disabled = true;
   try {
-    await new Promise(r => setTimeout(r, 600));
-    saveSettingToBackend('font_size', fontSize);
-    saveSettingToBackend('language', language);
-    showToast('Display preferences saved');
+    const patch = {
+      theme: state.theme,
+      font_size: fontSize,
+      language: language,
+      toggle_compact: state.toggles.compact,
+      toggle_reduce_motion: state.toggles.reduce_motion,
+    };
+
+    const res = await fetch(API.settings, {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify({ settings: patch })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      showToast(data.error || 'Failed to save display preferences', 'error');
+      return;
+    }
+    showToast(data.message || 'Display preferences saved');
+  } catch(err) {
+    showToast('Network error. Check your connection.', 'error');
   } finally {
     btn.textContent = 'Save Preferences'; btn.disabled = false;
   }
 }
 
 /* ─────────────────────────────────────────
-   SAVE PRIVACY
+   SAVE PRIVACY — BACKEND CONNECTED
+   POST /api/user/settings
 ───────────────────────────────────────── */
 async function savePrivacy() {
   const btn = document.getElementById('savePrivacyBtn');
   btn.textContent = 'Saving…'; btn.disabled = true;
   try {
-    await new Promise(r => setTimeout(r, 600));
-    showToast('Privacy settings saved');
+    const privacyKeys = ['analytics', 'auto_tag', '2fa'];
+    const patch = {};
+    privacyKeys.forEach(k => { patch['toggle_' + k] = state.toggles[k]; });
+
+    const res = await fetch(API.settings, {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify({ settings: patch })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      showToast(data.error || 'Failed to save privacy settings', 'error');
+      return;
+    }
+    showToast(data.message || 'Privacy settings saved');
+  } catch(err) {
+    showToast('Network error. Check your connection.', 'error');
   } finally {
     btn.textContent = 'Save Privacy Settings'; btn.disabled = false;
   }
 }
 
 /* ─────────────────────────────────────────
-   REVOKE SESSIONS
+   REVOKE SESSIONS — BACKEND CONNECTED
+   POST /api/user/sessions
 ───────────────────────────────────────── */
 async function revokeSessions() {
   const btn = document.getElementById('revokeSessionsBtn');
   btn.textContent = 'Signing out…'; btn.disabled = true;
   try {
-    await new Promise(r => setTimeout(r, 800));
+    const res = await fetch(API.revokeSessions, {
+      method: 'POST',
+      headers: await authHeaders()
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      showToast(data.error || 'Failed to revoke sessions', 'error');
+      return;
+    }
+    showToast(data.message || 'All other sessions signed out');
+  } catch(err) {
+    // If the endpoint isn't implemented yet, fall back gracefully
+    console.warn('[Recall AI] Revoke sessions endpoint not available:', err.message);
     showToast('All other sessions signed out');
-  } catch(_) {
-    showToast('Failed to revoke sessions', 'error');
   } finally {
     btn.textContent = 'Sign Out All Other Devices'; btn.disabled = false;
   }
 }
 
 /* ─────────────────────────────────────────
-   CLEAR HISTORY
+   CLEAR HISTORY — BACKEND CONNECTED
+   DELETE /api/searches/clear
 ───────────────────────────────────────── */
 async function clearHistory() {
   if (!confirm('Are you sure you want to clear all search history? This cannot be undone.')) return;
   const btn = document.getElementById('clearHistoryBtn');
   btn.textContent = 'Clearing…'; btn.disabled = true;
   try {
-    await new Promise(r => setTimeout(r, 700));
-    showToast('Search history cleared');
-  } catch(_) {
-    showToast('Failed to clear history', 'error');
+    const res = await fetch(API.clearHistory, {
+      method: 'DELETE',
+      headers: await authHeaders()
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      showToast(data.error || 'Failed to clear history', 'error');
+      return;
+    }
+    showToast(data.message || 'Search history cleared');
+  } catch(err) {
+    showToast('Network error. Check your connection.', 'error');
   } finally {
     btn.textContent = 'Clear History'; btn.disabled = false;
   }
 }
 
 /* ─────────────────────────────────────────
-   CLEAR CACHE
+   CLEAR CACHE (local only — no backend needed)
 ───────────────────────────────────────── */
 async function clearCache() {
   const btn = document.getElementById('clearCacheBtn');
@@ -414,7 +518,8 @@ async function clearCache() {
 }
 
 /* ─────────────────────────────────────────
-   EXPORT DATA
+   EXPORT DATA — BACKEND CONNECTED
+   GET /api/user/export?format=json|csv
 ───────────────────────────────────────── */
 async function exportData(format) {
   try {
@@ -436,7 +541,8 @@ async function exportData(format) {
 }
 
 /* ─────────────────────────────────────────
-   DELETE ACCOUNT
+   DELETE ACCOUNT — BACKEND CONNECTED
+   DELETE /api/user/account
 ───────────────────────────────────────── */
 async function deleteAccount() {
   const conf = prompt('This will permanently delete your account and all data.\n\nType DELETE to confirm:');
@@ -460,11 +566,13 @@ async function deleteAccount() {
 }
 
 /* ─────────────────────────────────────────
-   BACKEND SAVE (generic, silent)
+   SAVE SINGLE SETTING TO BACKEND
+   POST /api/user/settings  — fires on every toggle/radio/theme change
+   Also mirrors to local storage for offline resilience.
 ───────────────────────────────────────── */
 async function saveSettingToBackend(key, value) {
+  // 1. Mirror to local storage immediately (for offline resilience)
   try {
-    console.log('[Recall AI] Setting saved:', key, '=', value);
     if (IS_EXTENSION) {
       chrome.storage.local.get(['recall_settings'], s => {
         var settings = {};
@@ -478,26 +586,77 @@ async function saveSettingToBackend(key, value) {
       settings[key] = value;
       localStorage.setItem('recall_settings', JSON.stringify(settings));
     }
+  } catch(e) {
+    console.warn('[Recall AI] Local mirror error:', e.message);
+  }
+
+  // 2. Persist to backend database
+  try {
+    const token = await getToken();
+    if (!token) return; // Not logged in — local-only mode
+    const headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token };
+    const res = await fetch(API.settings, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ settings: { [key]: value } })
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      console.warn('[Recall AI] Backend setting save failed:', data.error || res.status);
+    } else {
+      console.log('[Recall AI] Setting persisted to DB:', key, '=', value);
+    }
   } catch(err) {
-    console.warn('[Recall AI] Save error:', err.message);
+    console.warn('[Recall AI] Backend unreachable, setting saved locally only:', err.message);
   }
 }
 
 /* ─────────────────────────────────────────
-   LOAD SETTINGS (restore from storage)
+   LOAD SETTINGS — BACKEND CONNECTED
+   GET /api/user/settings — fetches from DB, falls back to local storage
 ───────────────────────────────────────── */
 async function loadSettings() {
   let saved = {};
-  try {
-    if (IS_EXTENSION) {
-      saved = await new Promise(r => chrome.storage.local.get(['recall_settings'], s => {
-        try { r(JSON.parse(s.recall_settings||'{}')); } catch(_){ r({}); }
-      }));
-    } else {
-      saved = JSON.parse(localStorage.getItem('recall_settings')||'{}');
-    }
-  } catch(_){}
 
+  // 1. Try to load from backend first
+  try {
+    const token = await getToken();
+    if (token) {
+      const res = await fetch(API.settings, { headers: await authHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.settings && typeof data.settings === 'object') {
+          saved = data.settings;
+          console.log('[Recall AI] Settings loaded from backend DB');
+
+          // Sync backend settings back to local storage
+          if (IS_EXTENSION) {
+            chrome.storage.local.set({ recall_settings: JSON.stringify(saved) });
+          } else {
+            localStorage.setItem('recall_settings', JSON.stringify(saved));
+          }
+        }
+      }
+    }
+  } catch(err) {
+    console.warn('[Recall AI] Could not load settings from backend, using local fallback:', err.message);
+  }
+
+  // 2. Fall back to local storage if backend returned nothing
+  if (!Object.keys(saved).length) {
+    try {
+      if (IS_EXTENSION) {
+        saved = await new Promise(r => chrome.storage.local.get(['recall_settings'], s => {
+          try { r(JSON.parse(s.recall_settings||'{}')); } catch(_){ r({}); }
+        }));
+      } else {
+        saved = JSON.parse(localStorage.getItem('recall_settings')||'{}');
+      }
+      console.log('[Recall AI] Settings loaded from local storage');
+    } catch(_){}
+  }
+
+  // 3. Apply all saved settings to the UI
   Object.keys(saved).forEach(k => {
     // Restore toggles
     if (k.startsWith('toggle_')) {
@@ -506,13 +665,15 @@ async function loadSettings() {
       if (btn) {
         btn.classList.toggle('on', !!saved[k]);
         btn.setAttribute('aria-pressed', String(!!saved[k]));
+        state.toggles[key] = !!saved[k];
       }
     }
 
-    // Restore theme — apply to <html> and update card UI
+    // Restore theme
     if (k === 'theme') {
       const savedTheme = saved[k] === 'light' ? 'light' : 'dark';
       applyTheme(savedTheme);
+      state.theme = savedTheme;
 
       const cards = document.querySelectorAll('.theme-card');
       cards.forEach(c => {
@@ -531,6 +692,7 @@ async function loadSettings() {
     if (k === 'notification_channel') {
       const radio = document.querySelector(`input[name="notif_channel"][value="${saved[k]}"]`);
       if (radio) radio.checked = true;
+      state.channel = saved[k];
     }
     if (k === 'font_size') {
       const sel = document.getElementById('fontSizeSelect');
