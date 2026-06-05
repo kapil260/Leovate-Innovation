@@ -1698,3 +1698,154 @@ html, body {
   .modal-title  { font-size: 22px !important; }
   .modal-price  { font-size: 36px !important; }
 }
+/* ═══════════════════════════════════════════
+
+/* ═══════════════════════════════════════════
+   RECALL AI — LIGHT THEME OVERRIDES
+   Full text-color fixes for subscription page
+═══════════════════════════════════════════ */
+
+/* ── Page shell ── */
+html[data-theme="light"],
+html[data-theme="light"] body {
+  background: #f0f4ff !important;
+}
+[data-theme="light"] .subscription-recall-ai { background: #f0f4ff; }
+
+/* ── Sidebar ── */
+[data-theme="light"] .aside-side-nav-bar-integration {
+  background: rgba(240,244,255,0.95) !important;
+  border-color: rgba(0,0,0,0.08) !important;
+}
+[data-theme="light"] .text12,
+[data-theme="light"] .text13 { color: #1e2a4a !important; }
+[data-theme="light"] .link2:hover,
+[data-theme="light"] .link2:hover .text12 { color: #1e2a4a !important; }
+
+/* ── Page heading ── */
+[data-theme="light"] .heading-page-label { color: #5b5ef5 !important; }
+[data-theme="light"] .heading-page-title { color: #1e2a4a !important; background: none !important; -webkit-text-fill-color: #1e2a4a !important; }
+[data-theme="light"] .heading-page-grad  { color: #1e2a4a !important; background: none !important; -webkit-background-clip: unset !important; -webkit-text-fill-color: #1e2a4a !important; }
+[data-theme="light"] .heading-page-sub   { color: #475569 !important; }
+
+/* ── Billing toggle ── */
+[data-theme="light"] .billing-label              { color: #475569 !important; }
+[data-theme="light"] .billing-label.billing-active { color: #1e2a4a !important; }
+
+/* ── Current plan banner ── */
+[data-theme="light"] .current-plan-banner {
+  background: #ffffff !important;
+  border-color: rgba(0,0,0,0.09) !important;
+}
+[data-theme="light"] .current-plan-label  { color: #64748b !important; }
+[data-theme="light"] .current-plan-name   { color: #1e2a4a !important; -webkit-text-fill-color: #1e2a4a !important; background: none !important; }
+[data-theme="light"] .current-plan-renews { color: #475569 !important; }
+[data-theme="light"] .current-plan-date   { color: #64748b !important; }
+
+/* ── Pricing cards ── */
+[data-theme="light"] .pricing-card,
+[data-theme="light"] .pricing-card-highlighted {
+  background: #ffffff !important;
+  border-color: rgba(0,0,0,0.09) !important;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.06) !important;
+}
+
+[data-theme="light"] .card-tier-badge,
+[data-theme="light"] .card-tier-badge-free,
+[data-theme="light"] .card-tier-badge-pro,
+[data-theme="light"] .card-tier-badge-ultra {
+  background: #eef2ff !important;
+  color: #5b5ef5 !important;
+  border-color: rgba(91,94,245,0.2) !important;
+}
+
+[data-theme="light"] .card-currency         { color: #5b5ef5 !important; }
+[data-theme="light"] .card-currency-pro     { color: #5b5ef5 !important; }
+[data-theme="light"] .card-currency-ultra   { color: #0d9488 !important; }
+[data-theme="light"] .card-price            { color: #1e2a4a !important; }
+[data-theme="light"] .card-period           { color: #64748b !important; }
+[data-theme="light"] .card-period-pro,
+[data-theme="light"] .card-period-ultra     { color: #64748b !important; }
+[data-theme="light"] .card-name             { color: #1e2a4a !important; }
+[data-theme="light"] .card-name-ultra       { color: #0d9488 !important; }
+[data-theme="light"] .card-desc             { color: #475569 !important; }
+[data-theme="light"] .card-desc-pro         { color: #475569 !important; }
+[data-theme="light"] .card-divider          { background: rgba(0,0,0,0.07) !important; }
+[data-theme="light"] .card-divider-pro,
+[data-theme="light"] .card-divider-ultra    { background: rgba(0,0,0,0.07) !important; }
+
+/* ── Feature list ── */
+[data-theme="light"] .card-feature span             { color: #1e2a4a !important; }
+[data-theme="light"] .card-feature-pro span         { color: #1e2a4a !important; }
+[data-theme="light"] .card-feature-ultra span       { color: #1e2a4a !important; }
+[data-theme="light"] .card-feature-off span         { color: #94a3b8 !important; }
+[data-theme="light"] .card-popular-ribbon           { color: #5b5ef5 !important; }
+
+/* ── Usage section ── */
+[data-theme="light"] .usage-heading                 { color: #1e2a4a !important; }
+[data-theme="light"] .usage-title                   { color: #1e2a4a !important; }
+[data-theme="light"] .usage-period                  { color: #64748b !important; }
+[data-theme="light"] .usage-card {
+  background: #ffffff !important;
+  border-color: rgba(0,0,0,0.08) !important;
+}
+[data-theme="light"] .usage-card-label              { color: #64748b !important; }
+[data-theme="light"] .usage-card-val                { color: #1e2a4a !important; }
+[data-theme="light"] .usage-card-sub                { color: #94a3b8 !important; }
+[data-theme="light"] .usage-bar-track               { background: rgba(0,0,0,0.08) !important; }
+
+/* ── Invoice section ── */
+[data-theme="light"] .invoice-heading               { color: #1e2a4a !important; }
+[data-theme="light"] .invoice-row {
+  border-color: rgba(0,0,0,0.07) !important;
+}
+[data-theme="light"] .invoice-row-header {
+  background: rgba(0,0,0,0.03) !important;
+}
+[data-theme="light"] .invoice-row:hover:not(.invoice-row-header) {
+  background: rgba(0,0,0,0.02) !important;
+}
+[data-theme="light"] .invoice-date,
+[data-theme="light"] .invoice-desc,
+[data-theme="light"] .invoice-amount,
+[data-theme="light"] .invoice-col                   { color: #1e2a4a !important; }
+[data-theme="light"] .invoice-status                { color: #64748b !important; }
+[data-theme="light"] .invoice-paid                  { color: #16a34a !important; background: rgba(22,163,74,0.1) !important; }
+[data-theme="light"] .invoice-download              { color: #5b5ef5 !important; }
+[data-theme="light"] .invoice-download:hover        { color: #4338ca !important; }
+[data-theme="light"] .btn-export-invoices {
+  background: #eef2ff !important;
+  color: #5b5ef5 !important;
+  border-color: rgba(91,94,245,0.2) !important;
+}
+[data-theme="light"] .btn-export-invoices:hover {
+  background: #e0e7ff !important;
+  color: #4338ca !important;
+}
+
+/* ── Modal ── */
+[data-theme="light"] .modal-overlay { background: rgba(0,0,0,0.3) !important; }
+[data-theme="light"] .modal-card {
+  background: #ffffff !important;
+  border-color: rgba(0,0,0,0.10) !important;
+}
+[data-theme="light"] .modal-title    { color: #1e2a4a !important; }
+[data-theme="light"] .modal-subtitle { color: #475569 !important; }
+[data-theme="light"] .modal-price    { color: #1e2a4a !important; }
+[data-theme="light"] .modal-period   { color: #64748b !important; }
+[data-theme="light"] .modal-footnote { color: #94a3b8 !important; }
+[data-theme="light"] .modal-close    { color: #475569 !important; }
+[data-theme="light"] .modal-close:hover { color: #1e2a4a !important; background: rgba(0,0,0,0.05) !important; }
+[data-theme="light"] .modal-feature  { color: #1e2a4a !important; }
+
+/* ── Toast ── */
+[data-theme="light"] .toast {
+  background: #ffffff !important;
+  border-color: rgba(0,0,0,0.12) !important;
+  color: #1e2a4a !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
+}
+
+/* ── Glow decorations — soften ── */
+[data-theme="light"] .background-decoration-top,
+[data-theme="light"] .background-decoration-bottom { opacity: 0.35; }
