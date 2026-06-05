@@ -1,7 +1,8 @@
 // ============================================================
 // routes/searchRoutes.js
-// Handles all search operations with Gemini AI integration:
-//   POST   /api/searches/save          — Save + AI tag + AI summary
+// Handles all search operations with Groq AI integration:
+//   POST   /api/searches/save          — Save + AI tag + rich AI summary
+//   POST   /api/searches/combine       — Combine summaries from multiple platforms
 //   GET    /api/searches/              — Get all searches (filter/search)
 //   GET    /api/searches/stats         — Get dashboard stats
 //   GET    /api/searches/insight       — Get AI weekly insight
@@ -18,10 +19,11 @@ const crypto   = require("crypto");
 const supabase = require("../supabaseClient");
 const protect  = require("../middleware/authMiddleware");
 
-// Import Gemini AI functions
+// Import Groq AI functions
 const {
   getAutoTag,
   getAutoSummary,
+  getCombinedSummary,
   getWeeklyInsight
 } = require("../geminiClient");
 
@@ -29,13 +31,18 @@ const {
 // ── SAVE A SEARCH ─────────────────────────────────────────────
 // POST /api/searches/save
 // Protected: YES
-// Body: { query, source }
-// AI automatically assigns tag and summary
+// Body: { query, source, content }
+//   query   — the user's prompt text (required)
+//   source  — platform name e.g. "ChatGPT" (optional, default "ChatGPT")
+//   content — the full AI response text from the page (optional but recommended)
+//             When provided, the summary will cover the full response,
+//             not just the query. This is what makes summaries rich and detailed.
+// AI automatically assigns tag and summary.
 // Returns: { message, search }
 
 router.post("/save", protect, async (req, res) => {
   try {
-    const { query, source } = req.body;
+    const { query, source, content } = req.body;
     const userId = req.user.id;
 
     // Query is required
@@ -44,17 +51,20 @@ router.post("/save", protect, async (req, res) => {
     }
 
     // Trim the query
-    const cleanQuery = query.trim();
+    const cleanQuery   = query.trim();
+    // content is the actual AI response text — may be empty for older clients
+    const cleanContent = (content || "").trim();
 
-    console.log(`🤖 Gemini AI processing: "${cleanQuery.substring(0, 60)}..."`);
+    console.log(`🤖 Groq AI processing: "${cleanQuery.substring(0, 60)}..." (content: ${cleanContent.length} chars)`);
 
-    // Call both Gemini AI functions at the same time (parallel = faster)
+    // Run tag and summary in parallel (faster)
+    // Summary uses the full response content if available, otherwise falls back to query alone
     const [autoTag, autoSummary] = await Promise.all([
       getAutoTag(cleanQuery),
-      getAutoSummary(cleanQuery)
+      getAutoSummary(cleanQuery, cleanContent)
     ]);
 
-    console.log(`✅ Tag: ${autoTag} | Summary: ${autoSummary}`);
+    console.log(`✅ Tag: ${autoTag} | Summary length: ${autoSummary.length} chars`);
 
     // Save to Supabase
     const { data: savedSearch, error } = await supabase
@@ -65,11 +75,16 @@ router.post("/save", protect, async (req, res) => {
         source:    source || "ChatGPT",
         tag:       autoTag,
         summary:   autoSummary,
+        // Store the raw content so we can use it later for combined summaries.
+        // If your Supabase table doesn't have a `content` column yet, add one:
+        //   ALTER TABLE searches ADD COLUMN content TEXT;
+        content:   cleanContent,
         timestamp: new Date(),
         is_shared: false
       })
       .select()
       .single();
+
     if (error) {
       console.error("Save search DB error:", error.message);
       return res.status(500).json({ error: "Could not save search. Please try again." });
@@ -83,6 +98,87 @@ router.post("/save", protect, async (req, res) => {
   } catch (error) {
     console.error("Save search error:", error.message);
     res.status(500).json({ error: "Server error while saving search." });
+  }
+});
+
+
+// ── COMBINE SUMMARIES FROM MULTIPLE PLATFORMS ──────────────────
+// POST /api/searches/combine
+// Protected: YES
+// Body: { topic, searchIds }
+//   topic     — the common search topic / query text
+//   searchIds — array of search IDs to combine (must belong to this user)
+//
+// This endpoint reads the stored `content` (or `summary` as fallback) for
+// each search ID, sends all of it to Groq, and returns a single unified
+// multi-paragraph summary covering all platforms.
+//
+// The extension calls this automatically when it detects the same query
+// on multiple platforms. The user can also trigger it manually from the
+// history page.
+//
+// Returns: { message, combinedSummary, platforms, searchCount }
+
+router.post("/combine", protect, async (req, res) => {
+  try {
+    const { topic, searchIds } = req.body;
+    const userId = req.user.id;
+
+    if (!topic || topic.trim().length === 0) {
+      return res.status(400).json({ error: "Topic is required." });
+    }
+
+    if (!searchIds || !Array.isArray(searchIds) || searchIds.length === 0) {
+      return res.status(400).json({ error: "searchIds array is required." });
+    }
+
+    if (searchIds.length < 2) {
+      return res.status(400).json({ error: "Need at least 2 searches to combine." });
+    }
+
+    // Fetch all requested searches — security: only this user's searches
+    const { data: searches, error } = await supabase
+      .from("searches")
+      .select("id, query, source, content, summary")
+      .eq("user_id", userId)
+      .in("id", searchIds);
+
+    if (error) {
+      console.error("Combine — DB fetch error:", error.message);
+      return res.status(500).json({ error: "Could not fetch searches." });
+    }
+
+    if (!searches || searches.length === 0) {
+      return res.status(404).json({ error: "No matching searches found." });
+    }
+
+    // Build entries for the AI. Use `content` if available, fall back to `summary`.
+    const entries = searches.map(s => ({
+      source:  s.source || "Unknown",
+      query:   s.query,
+      content: (s.content && s.content.trim().length > 50) ? s.content : s.summary
+    }));
+
+    const platformList = [...new Set(entries.map(e => e.source))];
+    console.log(`🔀 Combining ${entries.length} searches from [${platformList.join(", ")}] on topic: "${topic.substring(0,60)}"`);
+
+    // Ask Groq to synthesize everything into one rich summary
+    const combinedSummary = await getCombinedSummary(topic.trim(), entries);
+
+    if (!combinedSummary) {
+      return res.status(500).json({ error: "AI could not generate a combined summary. Please try again." });
+    }
+
+    res.status(200).json({
+      message:         "Combined summary generated!",
+      combinedSummary: combinedSummary,
+      platforms:       platformList,
+      searchCount:     searches.length
+    });
+
+  } catch (error) {
+    console.error("Combine error:", error.message);
+    res.status(500).json({ error: "Server error while combining summaries." });
   }
 });
 
@@ -238,7 +334,7 @@ router.get("/insight", protect, async (req, res) => {
       return res.status(500).json({ error: "Could not fetch weekly searches." });
     }
 
-    // Ask Gemini to generate a personalized insight
+    // Ask Groq to generate a personalized insight
     const insight = await getWeeklyInsight(weekSearches);
 
     res.status(200).json({
@@ -249,6 +345,37 @@ router.get("/insight", protect, async (req, res) => {
   } catch (error) {
     console.error("Insight error:", error.message);
     res.status(500).json({ error: "Server error while generating insight." });
+  }
+});
+
+
+// ── CLEAR ALL SEARCHES ────────────────────────────────────────
+// DELETE /api/searches/clear
+// MUST be defined BEFORE /:id — otherwise Express treats "clear" as an id param
+// Protected: YES
+
+router.delete("/clear", protect, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    console.log(`[RecallAI] Clearing all searches for user ${userId}`);
+
+    const { error } = await supabase
+      .from("searches")
+      .delete()
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("Clear all history DB error:", error.message, error.details, error.hint);
+      return res.status(500).json({ error: "Could not clear history: " + error.message });
+    }
+
+    console.log(`[RecallAI] All searches cleared for user ${userId}`);
+    res.status(200).json({ message: "All search history cleared successfully!" });
+
+  } catch (err) {
+    console.error("Clear all history error:", err.message);
+    res.status(500).json({ error: "Server error while clearing history." });
   }
 });
 
@@ -318,6 +445,7 @@ router.patch("/:id/share", protect, async (req, res) => {
         search:    existingSearch
       });
     }
+
     // Generate a unique share token
     const shareToken = crypto.randomBytes(32).toString("hex");
 
@@ -418,37 +546,67 @@ router.get("/shared/:token", async (req, res) => {
 // ── RETAG ALL SEARCHES WITH AI ────────────────────────────────
 // POST /api/searches/retag-all
 // Protected: YES
-// Goes through all searches tagged as "Other" and re-tags with Gemini
-// Useful for updating old searches saved before AI was added
+// Goes through all searches tagged as "Other" and re-tags with Groq AI.
+// Also regenerates summaries for entries that have very short summaries
+// (under 80 chars — likely one-liners from the old version).
+// Useful for upgrading old searches saved before the rich summary update.
 
 router.post("/retag-all", protect, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Get searches with no proper tag
+    // Get searches with no proper tag OR very short (one-line) summaries
     const { data: searches, error } = await supabase
       .from("searches")
-      .select("id, query")
+      .select("id, query, content, summary")
       .eq("user_id", userId)
-      .or("tag.eq.Other,summary.eq.");
+      .or("tag.eq.Other,summary.eq.,summary.is.null");
 
     if (error) {
       return res.status(500).json({ error: "Could not fetch searches." });
     }
 
-    if (searches.length === 0) {
+    // Also grab searches with suspiciously short summaries (< 80 chars = one-liners)
+    const { data: shortSummarySearches, error: shortErr } = await supabase
+      .from("searches")
+      .select("id, query, content, summary")
+      .eq("user_id", userId)
+      .not("summary", "is", null)
+      .lt("summary", "zzz"); // workaround — we'll filter in JS
+
+    if (shortErr) {
+      console.warn("Could not fetch short-summary searches:", shortErr.message);
+    }
+
+    // Combine: all "Other"/empty + those with short summaries
+    const shortOnes = (shortSummarySearches || []).filter(
+      s => s.summary && s.summary.trim().length < 80
+    );
+
+    // Deduplicate by id
+    const allIds = new Set((searches || []).map(s => s.id));
+    const combined = [...(searches || [])];
+    for (const s of shortOnes) {
+      if (!allIds.has(s.id)) {
+        combined.push(s);
+        allIds.add(s.id);
+      }
+    }
+
+    if (combined.length === 0) {
       return res.status(200).json({
-        message: "All your searches already have AI tags and summaries!"
+        message: "All your searches already have AI tags and rich summaries!"
       });
     }
 
     let updated = 0;
 
     // Process each search one by one
-    for (const search of searches) {
+    for (const search of combined) {
+      const cleanContent = (search.content || "").trim();
       const [newTag, newSummary] = await Promise.all([
         getAutoTag(search.query),
-        getAutoSummary(search.query)
+        getAutoSummary(search.query, cleanContent)
       ]);
 
       await supabase
@@ -460,7 +618,7 @@ router.post("/retag-all", protect, async (req, res) => {
     }
 
     res.status(200).json({
-      message: `Successfully re-tagged ${updated} searches with Gemini AI!`,
+      message: `Successfully updated ${updated} searches with rich AI summaries!`,
       updated: updated
     });
 
@@ -472,4 +630,3 @@ router.post("/retag-all", protect, async (req, res) => {
 
 
 module.exports = router;
-
