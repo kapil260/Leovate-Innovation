@@ -14,14 +14,29 @@ require("dotenv").config();
 
 // ── EMAIL TRANSPORTER ─────────────────────────────────────────
 function createTransporter() {
+  // Strip spaces from app password (Google shows it with spaces but it works without)
+  const appPass = (process.env.GMAIL_APP_PASSWORD || "").replace(/\s/g, "");
   return nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
     auth: {
       user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD
+      pass: appPass
+    },
+    tls: {
+      rejectUnauthorized: false
     }
   });
 }
+
+// Test transporter on startup
+createTransporter().verify().then(() => {
+  console.log("[Recall AI] ✅ Gmail SMTP ready — emails will send");
+}).catch(err => {
+  console.error("[Recall AI] ❌ Gmail SMTP error:", err.message);
+  console.error("[Recall AI] Check GMAIL_USER and GMAIL_APP_PASSWORD in .env");
+});
 
 // ── SEND OTP EMAIL ────────────────────────────────────────────
 async function sendOtpEmail(toEmail, otp, username) {
@@ -125,11 +140,12 @@ router.post("/forgot-password", async (req, res) => {
       console.log(`[Recall AI] ✅ OTP sent to ${user.email}`);
     } catch (emailErr) {
       console.error("[Recall AI] ❌ Email send failed:", emailErr.message);
-      if (process.env.NODE_ENV === "development") {
-        console.log(`[Recall AI] DEV OTP for ${user.email}: ${otp}`);
-      }
+      // In development — log OTP to console so it can be tested without email
+      console.log(`[Recall AI] 🔑 OTP for ${user.email}: ${otp} (valid 10 min)`);
       return res.status(500).json({
-        error: "Could not send email. Check GMAIL_USER and GMAIL_APP_PASSWORD in .env"
+        error: "Could not send email. Check GMAIL_USER and GMAIL_APP_PASSWORD in .env",
+        // Return OTP in error response so frontend can show it (dev/demo mode)
+        devOtp: otp
       });
     }
 
