@@ -6,29 +6,285 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="dashbaord.css">
   <style>
-    a,
-    button,
-    input,
-    select,
-    h1,
-    h2,
-    h3,
-    h4,
-    h5,
-    * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-        border: none;
-        text-decoration: none;
-        background: none;
-        -webkit-font-smoothing: antialiased;
+    a, button, input, select, h1, h2, h3, h4, h5, * {
+      box-sizing: border-box; margin: 0; padding: 0; border: none;
+      text-decoration: none; background: none; -webkit-font-smoothing: antialiased;
+    }
+    menu, ol, ul { list-style-type: none; margin: 0; padding: 0; }
+
+    /* ── RECENT ACTIVITY FULL WIDTH ── */
+    .activity-full-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      width: 100%;
     }
 
-    menu, ol, ul {
-        list-style-type: none;
-        margin: 0;
-        padding: 0;
+    .activity-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .activity-search-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .activity-search-input {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      color: #e2e8f0;
+      font-size: 13px;
+      padding: 8px 14px;
+      outline: none;
+      width: 220px;
+      transition: border-color 0.2s;
+    }
+    .activity-search-input:focus { border-color: rgba(99,102,241,0.6); }
+    .activity-search-input::placeholder { color: rgba(255,255,255,0.3); }
+
+    /* ── ACTIVITY LIST ITEMS ── */
+    .activity-list-full {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .activity-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 18px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, transform 0.15s;
+      position: relative;
+    }
+    .activity-item:hover {
+      background: rgba(99,102,241,0.08);
+      border-color: rgba(99,102,241,0.25);
+      transform: translateX(3px);
+    }
+
+    .activity-item-bar {
+      width: 3px;
+      height: 40px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .activity-item-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 15px;
+    }
+
+    .activity-item-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .activity-item-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #e2e8f0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .activity-item-summary {
+      font-size: 12px;
+      color: rgba(255,255,255,0.45);
+      margin-top: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .activity-item-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .activity-item-time {
+      font-size: 11px;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .activity-item-tag {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      padding: 2px 8px;
+      border-radius: 20px;
+      text-transform: uppercase;
+    }
+
+    .tag-tech     { background: rgba(99,102,241,0.2);  color: #818cf8; }
+    .tag-science  { background: rgba(16,185,129,0.2);  color: #34d399; }
+    .tag-health   { background: rgba(239,68,68,0.2);   color: #f87171; }
+    .tag-finance  { background: rgba(245,158,11,0.2);  color: #fbbf24; }
+    .tag-history  { background: rgba(139,92,246,0.2);  color: #c084fc; }
+    .tag-other    { background: rgba(100,116,139,0.2); color: #94a3b8; }
+
+    /* ── LOADING & EMPTY STATES ── */
+    .activity-loading, .activity-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 24px;
+      color: rgba(255,255,255,0.3);
+      gap: 12px;
+    }
+    .activity-loading-dots {
+      display: flex; gap: 6px;
+    }
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: rgba(99,102,241,0.6);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.3; transform: scale(0.8); }
+      50%       { opacity: 1;   transform: scale(1.1); }
+    }
+
+    /* ── SUMMARY MODAL ── */
+    .summary-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(6px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .summary-overlay.open { display: flex; }
+
+    .summary-modal {
+      background: #0f1628;
+      border: 1px solid rgba(99,102,241,0.3);
+      border-radius: 20px;
+      padding: 28px 32px;
+      max-width: 520px;
+      width: 100%;
+      position: relative;
+      animation: slideUp 0.25s ease;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .summary-close {
+      position: absolute;
+      top: 16px; right: 16px;
+      width: 30px; height: 30px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.06);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      color: rgba(255,255,255,0.5);
+      font-size: 16px;
+      transition: background 0.2s, color 0.2s;
+    }
+    .summary-close:hover { background: rgba(239,68,68,0.15); color: #f87171; }
+
+    .summary-modal-tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+    }
+
+    .summary-modal-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #f1f5f9;
+      line-height: 1.3;
+      margin-bottom: 8px;
+    }
+
+    .summary-modal-meta {
+      font-size: 12px;
+      color: rgba(255,255,255,0.35);
+      margin-bottom: 20px;
+      display: flex;
+      gap: 12px;
+    }
+
+    .summary-modal-divider {
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+      margin-bottom: 18px;
+    }
+
+    .summary-modal-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(99,102,241,0.8);
+      margin-bottom: 10px;
+    }
+
+    .summary-modal-text {
+      font-size: 14px;
+      line-height: 1.7;
+      color: rgba(255,255,255,0.75);
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .summary-modal-query-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(100,116,139,0.8);
+      margin-top: 16px;
+      margin-bottom: 8px;
+    }
+
+    .summary-modal-query {
+      font-size: 13px;
+      line-height: 1.6;
+      color: rgba(255,255,255,0.45);
+      font-style: italic;
+    }
+
+    /* ── LOAD MORE BTN ── */
+    .load-more-wrap {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
     }
   </style>
   <title>Dashboard — Recall AI</title>
@@ -52,7 +308,7 @@
             </svg>
             <div class="input">
               <div class="container3">
-                <input class="search-input" type="text" placeholder="Search neural history…" id="searchInput" />
+                <input class="search-input" type="text" placeholder="Search your history…" id="searchInput" />
               </div>
             </div>
           </div>
@@ -92,16 +348,8 @@
                 <div class="text3">WEEKLY INSIGHTS</div>
               </div>
               <div class="heading-3">
-                <div class="text4">
-                  Your cognitive synthesis increased by 24%
-                  <br />
-                  this week.
-                </div>
-              </div>
-              <div class="container11">
-                <div class="insight-subtext">
-                  We've identified 3 recurring patterns in your search
-                  queries that could optimize your workflow.
+                <div class="text4" id="insightText">
+                  Loading your weekly insight…
                 </div>
               </div>
             </div>
@@ -112,256 +360,51 @@
           </div>
         </div>
 
-        <!-- Dashboard Content Grid -->
-        <div class="dashboard-content-layout-editorial-asymmetry">
+        <!-- RECENT ACTIVITY — Full Width -->
+        <div class="activity-full-section">
 
-          <!-- LEFT COLUMN — Recent Activity -->
-          <div class="left-column-activity-filters">
-            <div class="container12">
-              <div class="heading-4">
-                <div class="recent-activity">RECENT ACTIVITY</div>
-              </div>
-              <div class="activity-list">
-
-                <!-- Activity Item 1 — active -->
-                <div class="container13">
-                  <div class="activity-bar gradient"></div>
-                  <div class="container11">
-                    <div class="container11">
-                      <div class="what-is-ai">What is AI?</div>
-                    </div>
-                    <div class="container11">
-                      <div class="about-ai-full-explain">About AI full explain</div>
-                    </div>
-                    <div class="container14">
-                      <div class="text6">2 HOURS AGO</div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Activity Item 2 -->
-                <div class="container13">
-                  <div class="activity-bar background2"></div>
-                  <div class="container11">
-                    <div class="container11">
-                      <div class="text7">Context Exported</div>
-                    </div>
-                    <div class="container11">
-                      <div class="quantum-computing-project-pdf">
-                        "Quantum Computing Project" → PDF
-                      </div>
-                    </div>
-                    <div class="container14">
-                      <div class="text6">5 HOURS AGO</div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Activity Item 3 -->
-                <div class="container13">
-                  <div class="activity-bar background2"></div>
-                  <div class="container11">
-                    <div class="container11">
-                      <div class="text7">New Node Created</div>
-                    </div>
-                    <div class="container11">
-                      <div class="brainstorming-session-future-ui">
-                        Brainstorming session: Future UI
-                      </div>
-                    </div>
-                    <div class="container14">
-                      <div class="text6">YESTERDAY</div>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
+          <!-- Header row -->
+          <div class="activity-header-row">
+            <div class="heading-4">
+              <div class="recent-activity">RECENT ACTIVITY</div>
             </div>
-            <div class="horizontal-border"></div>
-          </div>
-
-          <!-- RIGHT COLUMN — Neural History -->
-          <div class="right-column-chat-history">
-
-            <!-- Header row -->
-            <div class="container9">
-              <div class="heading-42">
-                <div class="text8">Neural History</div>
-              </div>
-              <div class="container15">
-                <div class="background-border">
-                  <button class="button3 filter-btn active-filter" data-filter="all">
-                    <div class="text9">All</div>
-                  </button>
-                  <button class="button4 filter-btn" data-filter="date">
-                    <div class="text10">By Date</div>
-                  </button>
-                  <button class="button4 filter-btn" data-filter="keyword">
-                    <div class="text10">Keyword</div>
-                  </button>
-                </div>
-                <button class="button5" id="exportBtn" aria-label="Export">
-                  <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="7 10 12 15 17 10"/>
-                    <line x1="12" y1="15" x2="12" y2="3"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <!-- History Cards Grid -->
-            <div class="container17" id="historyGrid">
-
-              <!-- Card 1 -->
-              <div class="history-card history-card-1" data-id="1">
-                <div class="container18">
-                  <div class="overlay2">
-                    <svg width="18" height="18" fill="none" stroke="rgba(159,167,255,0.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                      <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
-                    </svg>
-                  </div>
-                  <div class="text11">MAY 24 • 14:20</div>
-                </div>
-                <div class="heading-6">
-                  <div class="card-title-text">Refactoring React Hooks</div>
-                </div>
-                <div class="container20">
-                  <div class="card-preview-text">
-                    "How do I optimize a useEffect hook
-                    <br />that depends on a complex object…
-                  </div>
-                </div>
-                <div class="horizontal-border2">
-                  <div class="container21">
-                    <div class="avatar-dot" style="background:#6366f1"></div>
-                    <div class="avatar-overlap">
-                      <div class="avatar-dot" style="background:#06b6d4"></div>
-                    </div>
-                  </div>
-                  <button class="card-action-btn" aria-label="Open">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                      <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Card 2 -->
-              <div class="history-card history-card-2" data-id="2">
-                <div class="container23">
-                  <div class="overlay3">
-                    <svg width="18" height="18" fill="none" stroke="rgba(190,131,250,0.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                      <circle cx="13.5" cy="6.5" r="0.5"/><circle cx="17.5" cy="10.5" r="0.5"/>
-                      <circle cx="8.5" cy="7.5" r="0.5"/><circle cx="6.5" cy="12.5" r="0.5"/>
-                      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
-                    </svg>
-                  </div>
-                  <div class="text11">MAY 23 • 09:15</div>
-                </div>
-                <div class="heading-6">
-                  <div class="card-title-text">Color Palette Synthesis</div>
-                </div>
-                <div class="container20">
-                  <div class="card-preview-text">
-                    "Generate a futuristic dark mode
-                    <br />palette using deep navy and electri…
-                  </div>
-                </div>
-                <div class="horizontal-border2">
-                  <div class="container21">
-                    <div class="avatar-dot" style="background:#a855f7"></div>
-                  </div>
-                  <button class="card-action-btn" aria-label="Open">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                      <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Card 3 -->
-              <div class="history-card history-card-3" data-id="3">
-                <div class="container23">
-                  <div class="overlay4">
-                    <svg width="18" height="18" fill="none" stroke="rgba(198,255,243,0.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                    </svg>
-                  </div>
-                  <div class="text11">MAY 21 • 18:45</div>
-                </div>
-                <div class="heading-6">
-                  <div class="card-title-text">Quantum State Logic</div>
-                </div>
-                <div class="container20">
-                  <div class="card-preview-text">
-                    "Explain the concept of
-                    <br />superposition in quantum…
-                  </div>
-                </div>
-                <div class="horizontal-border2">
-                  <div class="container21">
-                    <div class="avatar-dot" style="background:#10b981"></div>
-                    <div class="avatar-overlap">
-                      <div class="avatar-dot" style="background:#64748b"></div>
-                    </div>
-                  </div>
-                  <button class="card-action-btn" aria-label="Open">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                      <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Card 4 -->
-              <div class="history-card history-card-4" data-id="4">
-                <div class="container28">
-                  <div class="overlay2">
-                    <svg width="18" height="18" fill="none" stroke="rgba(159,167,255,0.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                      <polyline points="14 2 14 8 20 8"/>
-                      <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-                      <polyline points="10 9 9 9 8 9"/>
-                    </svg>
-                  </div>
-                  <div class="text11">MAY 20 • 11:30</div>
-                </div>
-                <div class="heading-6">
-                  <div class="card-title-text">Editorial Content Plan</div>
-                </div>
-                <div class="container20">
-                  <div class="card-preview-text">
-                    "Create a 4-week content calendar
-                    <br />for a design agency specializing in…
-                  </div>
-                </div>
-                <div class="horizontal-border2">
-                  <div class="container21">
-                    <div class="avatar-dot" style="background:#3b82f6"></div>
-                  </div>
-                  <button class="card-action-btn" aria-label="Open">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                      <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-            </div>
-
-            <!-- Load More -->
-            <div class="container31">
-              <button class="button6" id="loadMoreBtn">
-                <div class="load-more-history">Load More History</div>
+            <div class="activity-search-wrap">
+              <input
+                class="activity-search-input"
+                type="text"
+                id="activityFilter"
+                placeholder="Filter searches…"
+              />
+              <button class="button5" id="exportBtn" aria-label="Export" title="Export history">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
               </button>
             </div>
-
           </div>
+
+          <!-- Activity List -->
+          <div class="activity-list-full" id="activityList">
+            <!-- Loading state -->
+            <div class="activity-loading" id="activityLoading">
+              <div class="activity-loading-dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+              </div>
+              <span style="font-size:13px;">Loading your searches…</span>
+            </div>
+          </div>
+
+          <!-- Load More -->
+          <div class="load-more-wrap">
+            <button class="button6" id="loadMoreBtn" style="display:none;">
+              <div class="load-more-history">Load More</div>
+            </button>
+          </div>
+
         </div>
       </div>
     </div>
@@ -415,31 +458,43 @@
             <div class="text14">SETTINGS</div>
           </div>
         </a>
-        <!-- ── SUBSCRIPTION ── -->
-        <div class="link-subscription-css-transform">
-          <a class="link-subscription nav-link" href="../subscription-page/subscription.html" data-page="subscription">
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-              <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
-              <line x1="1" y1="10" x2="23" y2="10"/>
+        <a class="link nav-link" href="../subscription-page/subscription.html" data-page="subscription">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.86L12 17.77l-6.18 3.23L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          <div class="container7">
+            <div class="text14">SUBSCRIPTION</div>
+          </div>
+        </a>
+          <a class="link nav-link" href="../profile-page/profile.html" data-page="profile">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
             </svg>
             <div class="container7">
-              <div class="text-subscription">SUBSCRIPTION</div>
+              <div class="text14">PROFILE</div>
             </div>
           </a>
-        </div>
       </nav>
 
-      <!-- User profile -->
+      <!-- User profile (clickable → profile page) -->
       <div class="margin3">
-        <div class="background-border8">
+        <div class="background-border8 profile-card-clickable" id="profileCard" role="button" tabindex="0" title="View profile" style="cursor:pointer;">
           <div class="container37">
-            <img class="user-avatar" src="user-avatar0.png" alt="User Avatar" />
-            <div class="container7">
-              <div class="container11">
-                <div class="ronik-thapa" id="userName">Ronik Thapa</div>
-              </div>
-              <div class="user-role">Neural Architect</div>
+            <!-- Avatar: shows initials if no photo -->
+            <div class="user-avatar user-avatar-initials" id="sidebarAvatar" aria-hidden="true">
+              <span id="sidebarInitials" style="font-size:15px;font-weight:800;color:#fff;line-height:1;letter-spacing:-0.5px;">--</span>
             </div>
+            <div class="container7" style="flex:1;min-width:0;">
+              <div class="container11">
+                <div class="ronik-thapa" id="userName" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Loading…</div>
+              </div>
+              <div class="user-role" id="userEmailDisplay" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div>
+            </div>
+            <!-- Arrow indicator -->
+            <svg width="14" height="14" fill="none" stroke="#4b5563" stroke-width="2.5"
+                 stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="flex-shrink:0;">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
           </div>
         </div>
       </div>
@@ -460,8 +515,32 @@
       <span class="toast-msg" id="toastMsg"></span>
     </div>
 
+    <!-- ── SUMMARY MODAL ── -->
+    <div class="summary-overlay" id="summaryOverlay">
+      <div class="summary-modal">
+        <button class="summary-close" id="summaryClose">✕</button>
+
+        <div class="summary-modal-tag" id="modalTag"></div>
+        <div class="summary-modal-title" id="modalTitle"></div>
+        <div class="summary-modal-meta">
+          <span id="modalSource"></span>
+          <span id="modalTime"></span>
+        </div>
+        <div class="summary-modal-divider"></div>
+
+        <div class="summary-modal-label">AI Summary</div>
+        <div class="summary-modal-text" id="modalSummary">
+          No summary available for this search.
+        </div>
+
+        <div class="summary-modal-query-label">Original Query</div>
+        <div class="summary-modal-query" id="modalQuery"></div>
+      </div>
+    </div>
+
   </div>
 
   <script src="dashbaord.js"></script>
+<script src="../i18n.js"></script>
 </body>
 </html>
