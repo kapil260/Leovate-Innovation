@@ -5,6 +5,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="../setting-page/theme.js"></script>
   <link rel="stylesheet" href="subscription.css">
   <style>
     html, body {
@@ -12,6 +13,12 @@
       margin: 0;
       padding: 0;
       min-height: 100%;
+    }
+    [data-theme="light"] html,
+    [data-theme="light"] body,
+    html[data-theme="light"],
+    html[data-theme="light"] body {
+      background: #f0f4ff !important;
     }
     a, button, input, select, h1, h2, h3, h4, h5, * {
       box-sizing: border-box; margin: 0; padding: 0;
