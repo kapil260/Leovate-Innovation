@@ -1,0 +1,152 @@
+/* ═══════════════════════════════════════════════════════════════
+   RECALL AI — theme-vars.css
+   Include in every page AFTER theme.js.
+   Defines all CSS variables for dark/light + accent color.
+   Accent color is driven by --accent-h/s/l set by theme.js
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Default accent (Indigo) ─────────────────────────────── */
+:root {
+  --accent-h: 239;
+  --accent-s: 84%;
+  --accent-l: 67%;
+
+  /* Derived accent shades */
+  --accent:        hsl(var(--accent-h), var(--accent-s), var(--accent-l));
+  --accent-dim:    hsl(var(--accent-h), var(--accent-s), calc(var(--accent-l) - 10%));
+  --accent-bright: hsl(var(--accent-h), var(--accent-s), calc(var(--accent-l) + 10%));
+  --accent-soft:   hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.15);
+  --accent-softer: hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.08);
+  --accent-border: hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.30);
+}
+
+/* ── Dark theme (default) ────────────────────────────────── */
+:root,
+[data-theme="dark"] {
+  --bg-base:       #060e20;
+  --bg-card:       #0a1628;
+  --bg-card-alt:   #0d1b32;
+  --bg-surface:    #0f1e35;
+  --bg-input:      #101f38;
+  --bg-hover:      rgba(255,255,255,0.04);
+  --bg-active:     rgba(255,255,255,0.07);
+  --border:        rgba(255,255,255,0.07);
+  --border-mid:    rgba(255,255,255,0.12);
+  --text-primary:  #dee5ff;
+  --text-muted:    #94a3b8;
+  --text-faint:    #64748b;
+  --text-on-accent:#ffffff;
+  --shadow:        0 4px 24px rgba(0,0,0,0.4);
+  --sidebar-bg:    rgba(6,14,32,0.95);
+}
+
+/* ── Light theme ─────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg-base:       #f0f4ff;
+  --bg-card:       #ffffff;
+  --bg-card-alt:   #f8faff;
+  --bg-surface:    #eef2ff;
+  --bg-input:      #f4f6ff;
+  --bg-hover:      rgba(0,0,0,0.03);
+  --bg-active:     rgba(0,0,0,0.06);
+  --border:        rgba(0,0,0,0.08);
+  --border-mid:    rgba(0,0,0,0.14);
+  --text-primary:  #1e2a4a;
+  --text-muted:    #475569;
+  --text-faint:    #94a3b8;
+  --text-on-accent:#ffffff;
+  --shadow:        0 4px 24px rgba(0,0,0,0.10);
+  --sidebar-bg:    rgba(240,244,255,0.97);
+}
+
+/* ── Global base styles using variables ──────────────────── */
+html, body {
+  background: var(--bg-base) !important;
+  color: var(--text-primary) !important;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+/* Sidebar */
+.aside-side-nav-bar,
+.aside-side-nav-bar-authority-shared-components-json {
+  background: var(--sidebar-bg) !important;
+  border-right: 1px solid var(--border) !important;
+}
+
+/* Nav items */
+.nav-item-authority-shared-components-json,
+.nav-item {
+  color: var(--text-muted) !important;
+}
+.nav-item-authority-shared-components-json.active,
+.nav-item.active {
+  color: var(--accent) !important;
+  background: var(--accent-softer) !important;
+}
+
+/* Cards and surfaces */
+.section-card,
+.stat-card,
+.card,
+.history-item-row,
+.activity-item {
+  background: var(--bg-card) !important;
+  border-color: var(--border) !important;
+}
+
+/* Page background */
+.history-recall-ai,
+.dashboard-recall-ai,
+.settings-recall-ai,
+.page-shell {
+  background: var(--bg-base) !important;
+}
+
+/* Header bar */
+.header-top-app-bar-authority-shared-components-json {
+  background: rgba(var(--accent-h), 5%, 10%, 0.6) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+/* Inputs */
+.form-input,
+input, textarea, select {
+  background: var(--bg-input) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-mid) !important;
+}
+
+/* Accent-colored elements */
+.tag-badge.tech,
+.active-indicator,
+.nav-active-bar {
+  background: var(--accent) !important;
+}
+
+/* Buttons using accent */
+.primary-btn,
+.save-btn,
+.combine-btn,
+.sm-combine-btn {
+  background: var(--accent) !important;
+  color: var(--text-on-accent) !important;
+}
+.primary-btn:hover,
+.save-btn:hover {
+  background: var(--accent-bright) !important;
+}
+
+/* Text colors */
+.heading-2 .text,
+.page-heading,
+h1, h2, h3 {
+  color: var(--text-primary) !important;
+}
+.text-muted, .sub-text {
+  color: var(--text-muted) !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--accent-border); border-radius: 4px; }
