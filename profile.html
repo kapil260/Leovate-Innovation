@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Profile — Recall AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="profile.css" />
+  <script src="../setting-page/theme.js"></script>
+  <link rel="stylesheet" href="../theme-vars.css">
+</head>
+<body>
+
+<div class="glow glow-1"></div>
+<div class="glow glow-2"></div>
+
+<!-- ── SIDEBAR ────────────────────────────────────── -->
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-logo">R</div>
+    <div class="brand-name">Recall AI</div>
+  </div>
+  <nav class="nav">
+    <a class="nav-link" href="../dashboard-page/dashboard.html">
+      <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+        <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+      </svg>
+      <span data-i18n="nav_dashboard">Dashboard</span>
+    </a>
+    <a class="nav-link" href="../history-page/history.html">
+      <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+        <polyline points="12 8 12 12 14 14"/><path d="M3.05 11a9 9 0 1 1 .5 4m-.5 5v-5h5"/>
+      </svg>
+      <span data-i18n="nav_history">History</span>
+    </a>
+    <a class="nav-link active" href="profile.html">
+      <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+      </svg>
+      <span data-i18n="nav_profile">Profile</span>
+    </a>
+    <a class="nav-link" href="../setting-page/setting.html">
+      <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+      <span data-i18n="nav_settings">Settings</span>
+    </a>
+     <a class="link nav-link" href="../subscription-page/subscription.html" data-page="subscription">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.86L12 17.77l-6.18 3.23L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          <div class="container7">
+            <div class="text14">SUBSCRIPTION</div>
+          </div>
+        </a>
+  </nav>
+  <div class="sidebar-spacer"></div>
+</aside>
+
+<!-- ── MAIN ───────────────────────────────────────── -->
+<main class="main">
+
+  <!-- Profile Header -->
+  <div class="profile-header">
+    <div class="profile-left">
+
+      <!-- Avatar — clicking immediately shows in header too -->
+      <div class="avatar-wrap" id="avatarWrap" title="Change profile picture">
+        <div class="avatar-glow"></div>
+        <div class="avatar-circle">
+          <img id="avatarImg" src="" alt="Profile" />
+          <span id="avatarInitials">?</span>
+          <div class="avatar-overlay">
+            <svg width="18" height="18" fill="none" stroke="#dee5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <span data-i18n="upload">Upload</span>
+          </div>
+        </div>
+        <button class="avatar-edit-btn"
+                id="avatarEditBtn"
+                aria-label="Change picture">
+          <svg width="13" height="13" fill="none" stroke="#060e20" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        </button>
+      </div>
+      <input type="file" id="avatarFile" accept="image/*" />
+
+      <!-- Live header info — updates INSTANTLY as you type / on save -->
+      <div>
+        <div class="header-name" id="headerName">User</div>
+        <div class="header-email" id="headerEmail">—</div>
+        <div class="header-location" id="headerLocation" style="display:none;">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
+          <span id="headerLocationText"></span>
+        </div>
+        <div class="badges">
+          <span class="badge badge-purple" data-i18n="badge_pro">Pro Member</span>
+          <span class="badge badge-teal" data-i18n="badge_tier">Tier 2 Access</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="save-btn" id="saveBtn">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"
+           stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+      <span data-i18n="save_changes">Save Changes</span>
+    </button>
+  </div>
+
+  <!-- ── ROW: Personal Info + Contact ── -->
+  <div class="form-row col-2">
+
+    <!-- Personal Info -->
+    <div class="card">
+      <div class="section-title">
+        <svg width="16" height="16" fill="none" stroke="#9fa7ff" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+        </svg>
+        <span data-i18n="personal_info">Personal Info</span>
+      </div>
+
+      <div class="field-row field">
+        <div>
+          <label class="field-label" for="firstName" data-i18n="first_name">First Name</label>
+          <input class="field-input" type="text" id="firstName" data-i18n-placeholder="ph_first_name" placeholder="First name" />
+        </div>
+        <div>
+          <label class="field-label" for="lastName" data-i18n="last_name">Last Name</label>
+          <input class="field-input" type="text" id="lastName" data-i18n-placeholder="ph_last_name" placeholder="Last name" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="displayName" data-i18n="display_name">Display Name</label>
+        <input class="field-input" type="text" id="displayName" data-i18n-placeholder="ph_display_name" placeholder="@username" />
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="bio" data-i18n="bio">Bio</label>
+        <textarea class="field-input" id="bio" data-i18n-placeholder="ph_bio" placeholder="Tell us about yourself..."></textarea>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="location" data-i18n="location">Location</label>
+        <input class="field-input" type="text" id="location" data-i18n-placeholder="ph_location" placeholder="City, Country" />
+      </div>
+
+      <div class="card-deco">
+        <svg width="110" height="110" fill="none" viewBox="0 0 110 110">
+          <circle cx="55" cy="55" r="48" stroke="#9fa7ff" stroke-width="1"/>
+          <circle cx="55" cy="55" r="32" stroke="#9fa7ff" stroke-width="0.8"/>
+          <circle cx="55" cy="55" r="16" stroke="#9fa7ff" stroke-width="0.6"/>
+          <circle cx="55" cy="55" r="4" fill="#9fa7ff" opacity="0.5"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Contact & Identity -->
+    <div class="card">
+      <div class="section-title">
+        <svg width="16" height="16" fill="none" stroke="#be83fa" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+          <polyline points="22,6 12,13 2,6"/>
+        </svg>
+        <span data-i18n="contact_identity">Contact &amp; Identity</span>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="emailInput" data-i18n="email">Email Address</label>
+        <input class="field-input" type="email" id="emailInput" data-i18n-placeholder="ph_email" placeholder="you@example.com" />
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="phone" data-i18n="phone">Phone Number</label>
+        <input class="field-input" type="tel" id="phone" data-i18n-placeholder="ph_phone" placeholder="+1 234 567 8900" />
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="timezone" data-i18n="timezone">Timezone</label>
+        <select class="field-input" id="timezone">
+          <option value="asia/kathmandu">Asia / Kathmandu (UTC +5:45)</option>
+          <option value="utc">UTC (Universal)</option>
+          <option value="america/new_york">America / New York (UTC −5)</option>
+          <option value="europe/london">Europe / London (UTC +1)</option>
+          <option value="asia/tokyo">Asia / Tokyo (UTC +9)</option>
+          <option value="australia/sydney">Australia / Sydney (UTC +10)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="language" data-i18n="language">Language</label>
+        <select class="field-input" id="language">
+          <option value="en">English</option>
+          <option value="np">Nepali — नेपाली</option>
+          <option value="hi">Hindi — हिन्दी</option>
+          <option value="zh">Chinese — 中文</option>
+          <option value="es">Spanish — Español</option>
+        </select>
+      </div>
+
+      <div class="card-deco">
+        <svg width="100" height="100" fill="none" viewBox="0 0 100 100">
+          <path d="M50 4 L96 27 L96 73 L50 96 L4 73 L4 27 Z" stroke="#be83fa" stroke-width="1"/>
+          <path d="M50 18 L82 34 L82 66 L50 82 L18 66 L18 34 Z" stroke="#be83fa" stroke-width="0.8"/>
+          <path d="M50 32 L68 41 L68 59 L50 68 L32 59 L32 41 Z" stroke="#be83fa" stroke-width="0.6"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── LOGOUT SECTION (above danger zone) ── -->
+  <div class="logout-section">
+    <div class="logout-section-info">
+      <div class="logout-section-title">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        <span data-i18n="logout_title">Log Out</span>
+      </div>
+      <div class="logout-section-desc" data-i18n="logout_desc">Sign out of your Recall AI account on this device.</div>
+    </div>
+    <button class="logout-main-btn" id="logoutMainBtn">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+      <span data-i18n="logout_btn">Log Out</span>
+    </button>
+  </div>
+
+  <!-- ── DANGER ZONE ── -->
+  <div class="danger-card">
+    <div>
+      <div class="danger-title">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <span data-i18n="danger_zone">Danger Zone</span>
+      </div>
+      <div class="danger-desc" data-i18n="danger_desc">Permanently delete your account and all data. This cannot be undone.</div>
+    </div>
+    <button class="danger-btn" id="dangerDeleteBtn">
+      <span data-i18n="delete_account">Delete Account</span>
+    </button>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-copy">recall ai © 2026</div>
+    <div class="footer-links">
+      <span class="footer-link" data-i18n="privacy">Privacy Protocol</span>
+      <span class="footer-link" data-i18n="terms">Terms &amp; Conditions</span>
+    </div>
+  </div>
+
+</main>
+
+<!-- Toast -->
+<div class="toast" id="toastEl" role="alert" aria-live="polite">
+  <span id="toastIcon">✓</span>
+  <span id="toastMsg">Profile saved</span>
+</div>
+
+<!-- Logout Confirm Modal -->
+<div class="modal-backdrop" id="logoutModal">
+  <div class="modal">
+    <div class="modal-icon">
+      <svg width="28" height="28" fill="none" stroke="#9fa7ff" stroke-width="1.8"
+           stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+    </div>
+    <div class="modal-title" data-i18n="modal_logout_title">Log Out?</div>
+    <div class="modal-desc" data-i18n="modal_logout_desc">You'll need to sign in again to access your Recall AI account.</div>
+    <div class="modal-actions">
+      <button class="modal-cancel" id="modalCancelBtn"><span data-i18n="cancel">Cancel</span></button>
+      <button class="modal-confirm" id="modalConfirmBtn"><span data-i18n="yes_logout">Yes, Log Out</span></button>
+    </div>
+  </div>
+</div>
+
+<script src="profile-edit.js"></script>
+</body>
+</html>
