@@ -643,33 +643,62 @@
     .cm-body::-webkit-scrollbar-track { background: transparent; }
     .cm-body::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3); border-radius: 4px; }
 
-    /* ── Bullet list styles ── */
-    .cm-bullet-list {
-      list-style: none;
-      margin: 10px 0 16px 0;
-      padding: 0;
+    /* ── Insight card styles ── */
+    .cm-insight-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 10px;
+      transition: background 0.2s, border-color 0.2s;
     }
-    .cm-bullet-item {
-      position: relative;
-      padding: 8px 12px 8px 28px;
-      margin-bottom: 8px;
+    .cm-insight-card:last-child { margin-bottom: 0; }
+    .cm-insight-card:hover {
       background: rgba(99,102,241,0.07);
-      border: 1px solid rgba(99,102,241,0.15);
-      border-radius: 10px;
-      font-size: 13.5px;
-      line-height: 1.7;
-      color: rgba(255,255,255,0.82);
+      border-color: rgba(99,102,241,0.22);
     }
-    .cm-bullet-item:last-child { margin-bottom: 0; }
-    .cm-bullet-item::before {
-      content: "•";
-      position: absolute;
-      left: 10px;
-      top: 8px;
-      color: #818cf8;
-      font-size: 16px;
-      line-height: 1.5;
+    .cm-card-icon {
+      flex-shrink: 0;
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cm-card-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .cm-card-title {
+      font-size: 13.5px;
       font-weight: 700;
+      color: #e2e8ff;
+      margin-bottom: 5px;
+      line-height: 1.4;
+    }
+    .cm-card-desc {
+      font-size: 12.5px;
+      color: rgba(255,255,255,0.65);
+      line-height: 1.7;
+      margin-bottom: 8px;
+    }
+    .cm-card-desc:last-child { margin-bottom: 0; }
+    .cm-card-platforms {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 6px;
+    }
+    .cm-card-platform {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 2px 8px;
+      border-radius: 20px;
     }
     .cm-para {
       margin-bottom: 14px;
