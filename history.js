@@ -372,71 +372,152 @@ function renderCombinedText(txt) {
     'grok':       '#ec4899',
   };
 
+  // Card icon pool — cycles through for each bullet card
+  const cardIcons = [
+    `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.86L12 17.77l-6.18 3.23L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`,
+    `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>`,
+    `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>`,
+    `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>`,
+    `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>`,
+    `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+    `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>`,
+  ];
+
+  // Icon background colors — subtle, one per card cycling
+  const iconBgColors = [
+    'rgba(99,102,241,0.18)',
+    'rgba(16,185,129,0.18)',
+    'rgba(245,158,11,0.18)',
+    'rgba(239,68,68,0.18)',
+    'rgba(59,130,246,0.18)',
+    'rgba(190,131,250,0.18)',
+    'rgba(236,72,153,0.18)',
+  ];
+  const iconStrokeColors = [
+    '#818cf8', '#34d399', '#fbbf24', '#f87171', '#60a5fa', '#c084fc', '#f472b6',
+  ];
+
   function getPlatformColor(name) {
     const key = name.toLowerCase();
     return platformColors[key] || 'rgba(255,255,255,0.5)';
   }
 
-  // Process inline formatting: **bold** and (Platform) citations
-  function processInline(text) {
-    // Escape HTML first (but we'll re-add our formatting)
-    let safe = escHtml(text);
+  // Extract platform badges from end of text like (ChatGPT)(Claude)
+  function extractPlatforms(text) {
+    const platforms = [];
+    // Match all (PlatformName) at the end of the string
+    const re = /\(([A-Za-z ]+)\)/g;
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      const name = m[1].trim();
+      if (name.length > 0 && name.length < 25 && !/\d/.test(name)) {
+        platforms.push(name);
+      }
+    }
+    return platforms;
+  }
 
-    // **bold terms** → <strong>
+  // Strip platform citations from text (they'll be shown as footer badges)
+  function stripPlatforms(text) {
+    return text.replace(/\s*\([A-Za-z ]{1,24}\)/g, '').trim();
+  }
+
+  // Extract the bold title from "**Title** rest of content..."
+  function extractCardTitle(text) {
+    const m = text.match(/^\*\*([^*]+)\*\*(.*)$/s);
+    if (m) {
+      return { title: m[1].trim(), body: m[2].replace(/^[:\s–—-]+/, '').trim() };
+    }
+    return { title: null, body: text };
+  }
+
+  // Process inline bold only (no platform citations — those become footer badges)
+  function processInlineBold(text) {
+    let safe = escHtml(text);
     safe = safe.replace(/\*\*([^*]+)\*\*/g,
       '<strong style="color:#e2e8ff;font-weight:700;">$1</strong>');
+    return safe;
+  }
 
-    // (Platform) citations → colored badges
+  // Process inline formatting for paragraphs (bold + inline platform badges)
+  function processInlinePara(text) {
+    let safe = escHtml(text);
+    safe = safe.replace(/\*\*([^*]+)\*\*/g,
+      '<strong style="color:#e2e8ff;font-weight:700;">$1</strong>');
     safe = safe.replace(/\(([A-Za-z ]+)\)/g, function(match, name) {
       const trimmed = name.trim();
-      // Only style it if it looks like a platform name (short, no punctuation)
       if (trimmed.length > 0 && trimmed.length < 25 && !/\d/.test(trimmed)) {
         const col = getPlatformColor(trimmed);
         return `<span style="display:inline-block;padding:1px 7px;margin-left:3px;border-radius:10px;font-size:10px;font-weight:700;letter-spacing:0.03em;background:${col}22;color:${col};border:1px solid ${col}44;vertical-align:middle;">${escHtml(trimmed)}</span>`;
       }
-      return match; // not a platform — keep as-is
+      return match;
     });
-
     return safe;
   }
 
   // Split into lines and process
   const lines = txt.split('\n');
   let html = '';
-  let inBulletList = false;
+  let cardIndex = 0;
+  let bulletCards = [];
+  let inBulletSection = false;
 
+  // First pass: collect all bullets and paragraphs in order
+  const segments = []; // { type: 'para'|'bullet', content }
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
-
-    if (!line) {
-      // Blank line — close bullet list if open, start new paragraph gap
-      if (inBulletList) {
-        html += '</ul>';
-        inBulletList = false;
-      }
-      continue;
-    }
-
-    // Bullet line — starts with • or - or *
+    if (!line) continue;
     if (/^[•\-\*]\s/.test(line)) {
-      if (!inBulletList) {
-        html += '<ul class="cm-bullet-list">';
-        inBulletList = true;
-      }
-      const bulletContent = line.replace(/^[•\-\*]\s+/, '').trim();
-      html += `<li class="cm-bullet-item">${processInline(bulletContent)}</li>`;
+      const content = line.replace(/^[•\-\*]\s+/, '').trim();
+      segments.push({ type: 'bullet', content });
     } else {
-      // Regular paragraph line
-      if (inBulletList) {
-        html += '</ul>';
-        inBulletList = false;
-      }
-      html += `<p class="cm-para">${processInline(line)}</p>`;
+      segments.push({ type: 'para', content: line });
     }
   }
 
-  // Close any open list
-  if (inBulletList) html += '</ul>';
+  // Render segments
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+
+    if (seg.type === 'para') {
+      html += `<p class="cm-para">${processInlinePara(seg.content)}</p>`;
+    } else {
+      // Bullet → render as attractive card
+      const raw = seg.content;
+      const platforms = extractPlatforms(raw);
+      const stripped = stripPlatforms(raw);
+      const { title, body } = extractCardTitle(stripped);
+
+      const iconHtml = cardIcons[cardIndex % cardIcons.length];
+      const iconBg = iconBgColors[cardIndex % iconBgColors.length];
+      const iconStroke = iconStrokeColors[cardIndex % iconStrokeColors.length];
+
+      const platformBadges = platforms.map(p => {
+        const col = getPlatformColor(p);
+        return `<span class="cm-card-platform" style="background:${col}20;color:${col};border:1px solid ${col}40;">${escHtml(p)}</span>`;
+      }).join('');
+
+      // Build card HTML
+      let cardHtml = `<div class="cm-insight-card">`;
+      cardHtml += `<div class="cm-card-icon" style="background:${iconBg};color:${iconStroke};">${iconHtml}</div>`;
+      cardHtml += `<div class="cm-card-content">`;
+      if (title) {
+        cardHtml += `<div class="cm-card-title">${escHtml(title)}</div>`;
+        if (body) {
+          cardHtml += `<div class="cm-card-desc">${processInlineBold(body)}</div>`;
+        }
+      } else {
+        cardHtml += `<div class="cm-card-desc">${processInlineBold(body)}</div>`;
+      }
+      if (platformBadges) {
+        cardHtml += `<div class="cm-card-platforms">${platformBadges}</div>`;
+      }
+      cardHtml += `</div></div>`;
+
+      html += cardHtml;
+      cardIndex++;
+    }
+  }
 
   return html || '<p style="color:rgba(255,255,255,0.3)">No content to display.</p>';
 }
