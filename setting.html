@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="theme.js"></script>
+  <link rel="stylesheet" href="../theme-vars.css">
   <link rel="stylesheet" href="setting.css">
 </head>
 <body>
@@ -20,7 +21,7 @@
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-logo">
-        <img src="background5.png" alt="Recall AI Logo" style="width:100%;height:100%;object-fit:contain;border-radius:6px;" onerror="this.style.display='none';this.parentElement.textContent='R'">
+        <img src="background0.png" alt="Recall AI Logo" style="width:100%;height:100%;object-fit:contain;border-radius:6px;" onerror="this.style.display='none';this.parentElement.textContent='R'">
       </div>
       <span class="brand-name">Recall AI</span>
     </div>
@@ -335,19 +336,19 @@
                   <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
               </button>
-              <button class="theme-card" data-theme="light">
-                <div class="theme-preview tp-light-preview">
-                  <div class="tp-sidebar-light"></div>
-                  <div class="tp-content-light">
-                    <div class="tp-bar-light"></div>
-                    <div class="tp-bar-light short"></div>
-                  </div>
-                </div>
-                <div class="theme-name">Light</div>
-                <div class="theme-check" style="display:none">
-                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                </div>
-              </button>
+              
+            </div>
+
+            <!-- ── ACCENT COLOR PICKER ── -->
+            <div style="margin-top:20px;">
+              <div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-faint,#64748b);margin-bottom:12px;">
+                Accent Color
+              </div>
+              <div class="accent-swatch-grid" id="accentSwatchGrid" style="display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin-bottom:14px;">
+                <!-- Swatches injected by setting.js -->
+              </div>
+
+            
             </div>
           </div>
 
