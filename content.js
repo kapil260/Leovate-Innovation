@@ -48,7 +48,7 @@ let isInitialized = false;
 
 function isDuplicateQuery(q) {
   if (!q || q.length < 3) return true;
-  if (q === lastQuery && Date.now() - lastQueryTime < 8000) return true;
+  if (q === lastQuery && Date.now() - lastQueryTime < 30000) return true;
   return false;
 }
 
@@ -100,9 +100,9 @@ function injectNetworkInterceptor() {
     if (url.includes('/api/generate')) return true;
     if (url.includes('bard.google.com')) return true;
     if (url.includes('gemini.google.com') && url.includes('StreamGenerate')) return true;
-    // Claude
-    if (url.includes('/api/') && url.includes('/messages')) return true;
+    // Claude — match /completion, /messages, or any claude.ai/api path
     if (url.includes('claude.ai/api')) return true;
+    if (url.includes('claude.ai') && url.includes('/api/')) return true;
     // Perplexity
     if (url.includes('perplexity.ai') && (url.includes('/socket') || url.includes('/search'))) return true;
     return false;
@@ -131,10 +131,25 @@ function injectNetworkInterceptor() {
       }
       
       // ── Claude ───────────────────────────────
-      if (url.includes('/messages') || url.includes('claude.ai')) {
+      if (url.includes('claude.ai')) {
         const parsed = JSON.parse(bodyText);
+
+        // /completion endpoint: top-level prompt string (current format)
+        if (parsed.prompt && typeof parsed.prompt === 'string' && parsed.prompt.length > 2) {
+          return parsed.prompt.trim();
+        }
+
+        // /completion endpoint: prompt as array of content blocks
+        if (Array.isArray(parsed.prompt)) {
+          const text = parsed.prompt
+            .filter(c => c.type === 'text')
+            .map(c => c.text)
+            .join(' ').trim();
+          if (text.length > 2) return text;
+        }
+
+        // messages array format (legacy /messages endpoint)
         const messages = parsed.messages || [];
-        // Take the last user message
         for (let i = messages.length - 1; i >= 0; i--) {
           const msg = messages[i];
           if (msg.role === 'user') {
@@ -149,10 +164,6 @@ function injectNetworkInterceptor() {
               if (text.length > 2) return text;
             }
           }
-        }
-        // Also check top-level prompt field
-        if (parsed.prompt && typeof parsed.prompt === 'string') {
-          return parsed.prompt.trim();
         }
       }
 
@@ -222,7 +233,7 @@ function injectNetworkInterceptor() {
     return origFetch.apply(this, arguments);
   };
 
-/* ── Wrap XHR (Improved for Blob/FormData safety) ── */
+  /* ── Wrap XHR ── */
   const origOpen = XMLHttpRequest.prototype.open;
   const origSend = XMLHttpRequest.prototype.send;
   
@@ -234,26 +245,18 @@ function injectNetworkInterceptor() {
   XMLHttpRequest.prototype.send = function(body) {
     const url = this.__recallUrl || '';
     if (isPromptRequest(url) && body) {
-      // Logic for strings (Standard JSON prompts)
-      if (typeof body === 'string') {
-        const prompt = extractPrompt(url, body);
-        if (prompt) {
-          window.postMessage({ __recallai: true, prompt, source: location.hostname }, '*');
-        }
-      } 
-      // Logic for Blobs (Large prompts or specific file-backed uploads)
-      else if (body instanceof Blob) {
-        body.text().then(text => {
-          const prompt = extractPrompt(url, text);
-          if (prompt) {
-            window.postMessage({ __recallai: true, prompt, source: location.hostname }, '*');
-          }
-        }).catch(() => { /* Silent fail for binary blobs */ });
+      let bodyText = body;
+      if (typeof bodyText !== 'string') {
+        try { bodyText = new TextDecoder().decode(bodyText); } catch(e) {}
+      }
+      const prompt = extractPrompt(url, bodyText);
+      if (prompt) {
+        window.postMessage({ __recallai: true, prompt, source: location.hostname }, '*');
       }
     }
     return origSend.apply(this, arguments);
   };
-  
+
   console.log('[Recall AI] 🔌 Network interceptor active on', HOST);
 })();
   `;
@@ -303,7 +306,9 @@ function attachDOMObserver() {
     document.querySelectorAll(sel).forEach(el => {
       if (knownTurns.has(el)) return;
       knownTurns.add(el);
-      const text = (el.innerText || el.textContent || '').trim();
+      let text = (el.innerText || el.textContent || '').trim();
+      // Claude's DOM wraps user messages with "You said\n" — strip it
+      text = text.replace(/^You said[\s\S]{0,2}/i, '').trim();
       if (text.length > 3) {
         console.log(`[Recall AI] 🔍 DOM observer caught: "${text.substring(0,60)}"`);
         saveQuery(text);
@@ -427,19 +432,13 @@ function init() {
   // PRIMARY: network interception (most reliable)
   injectNetworkInterceptor();
 
-  // BACKUPS: DOM + keyboard (catch anything network missed)
+  // BACKUP: DOM observer only (keyboard/button capture removed — they
+  // fire before the network interceptor and cause duplicates on all platforms)
   attachDOMObserver();
-  attachKeyboardCapture();
-  attachSendButtonCapture();
 }
 
 if (document.readyState === 'loading') {
-  // Inject interceptor as early as possible
-  injectNetworkInterceptor();
-  document.addEventListener('DOMContentLoaded', () => {
-    isInitialized = false; // reset so init() runs properly
-    init();
-  });
+  document.addEventListener('DOMContentLoaded', init);
 } else {
   init();
 }
