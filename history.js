@@ -1,443 +1,823 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="history.css">
-  <style>
-    a,
-    button,
-    input,
-    select,
-    h1,
-    h2,
-    h3,
-    h4,
-    h5,
-    * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-        border: none;
-        text-decoration: none;
-        background: none;
-        -webkit-font-smoothing: antialiased;
-    }
+/* ─────────────────────────────────────────
+   RECALL AI — history.js
+   Real data only — grouped by date,
+   click to see summary, delete with confirm.
 
-    menu, ol, ul {
-        list-style-type: none;
-        margin: 0;
-        padding: 0;
-    }
-  </style>
-  <title>History — Recall AI</title>
-</head>
-<body>
+   NEW: Cross-platform Combine feature
+   ─ Long-press or checkbox to select cards
+   ─ Floating bar appears when 2+ selected
+   ─ Combine calls /api/searches/combine
+   ─ Result shown in a rich combined modal
+───────────────────────────────────────── */
+'use strict';
 
-  <div class="history-recall-ai">
+/* ── CONFIG ─────────────────────────────── */
+const BACKEND_URL = 'http://localhost:5000';
+const API = {
+  history: `${BACKEND_URL}/api/searches/`,
+  search:  `${BACKEND_URL}/api/searches/?q=`,
+  delete:  `${BACKEND_URL}/api/searches/`,
+  combine: `${BACKEND_URL}/api/searches/combine`,
+};
 
-    <!-- ── MAIN CONTENT CANVAS ── -->
-    <div class="main-content-canvas">
+/* ── AUTH ────────────────────────────────── */
+async function getToken() {
+  return new Promise(r => chrome.storage.local.get(['recall_token'], s => r(s.recall_token || null)));
+}
+async function authHeaders() {
+  const token = await getToken();
+  return { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) };
+}
+async function checkAuth() {
+  const token = await getToken();
+  if (!token) window.location.href = '../login-page/login.html';
+}
+async function logout() {
+  await new Promise(r => chrome.storage.local.remove(['recall_token','recall_user'], r));
+  window.location.href = '../login-page/login.html';
+}
 
-      <!-- Background orbs -->
-      <div class="abstract-background-orbs"></div>
-      <div class="overlay-blur"></div>
+/* ── TOAST ──────────────────────────────── */
+let toastTimer = null;
+function showToast(msg, type) {
+  type = type || 'success';
+  clearTimeout(toastTimer);
+  const t  = document.getElementById('toast');
+  const ti = document.getElementById('toastIcon');
+  const tm = document.getElementById('toastMsg');
+  tm.textContent  = msg;
+  ti.textContent  = type === 'success' ? '✓' : '✕';
+  t.className     = 'toast toast-' + type + ' show';
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
 
-      <!-- ── HEADER ── -->
-      <div class="header-top-app-bar-authority-shared-components-json">
-        <div class="container24">
-          <div class="input">
-            <svg class="search-icon-abs" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-            <div class="container25">
-              <input
-                class="search-input-el"
-                type="text"
-                id="searchInput"
-                placeholder="Search past queries, topics, or insights..."
-              />
-            </div>
-          </div>
-        </div>
-        <div class="container27">
-          <div class="button-css-transform">
-            <button class="button3" id="notifBtn" aria-label="Notifications">
-              <svg width="18" height="18" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-              </svg>
-              <div class="background-border5"></div>
-            </button>
-          </div>
-          <div class="vertical-divider3"></div>
-          <div class="container29">
-            <div class="paragraph2">
-              <div class="ronik-thapa" id="userName">Ronik Thapa</div>
-              <div class="pro-account">Pro Account</div>
-            </div>
-            <img class="user-avatar" src="user-avatar0.png" alt="User Avatar" />
-          </div>
-        </div>
-      </div>
+/* ── HELPERS ────────────────────────────── */
+function escHtml(s) {
+  return String(s || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
-      <!-- ── SECTION CONTENT ── -->
-      <div class="section-content-canvas">
+const TAG_ICONS = {
+  Tech:'⚡', Science:'🔬', Health:'❤️',
+  Finance:'💰', History:'📜', Other:'🔍'
+};
+const TAG_COLORS = {
+  Tech:    { bar:'#6366f1', bg:'rgba(99,102,241,0.15)'  },
+  Science: { bar:'#10b981', bg:'rgba(16,185,129,0.15)'  },
+  Health:  { bar:'#ef4444', bg:'rgba(239,68,68,0.15)'   },
+  Finance: { bar:'#f59e0b', bg:'rgba(245,158,11,0.15)'  },
+  History: { bar:'#8b5cf6', bg:'rgba(139,92,246,0.15)'  },
+  Other:   { bar:'#64748b', bg:'rgba(100,116,139,0.15)' },
+};
 
-        <!-- Page heading + filter -->
-        <div class="container">
-          <div class="container2">
-            <div class="container3"></div>
-            <div class="heading-2">
-              <div class="text">History</div>
-            </div>
-          </div>
-          <div class="container4">
-            <button class="button" id="filterBtn">
-              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                <line x1="4" y1="6" x2="20" y2="6"/>
-                <line x1="8" y1="12" x2="16" y2="12"/>
-                <line x1="11" y1="18" x2="13" y2="18"/>
-              </svg>
-              <div class="text2">Filter</div>
-            </button>
-          </div>
-        </div>
+const SOURCE_COLORS = {
+  ChatGPT:    '#10a37f',
+  Claude:     '#d97706',
+  Gemini:     '#4285f4',
+  Perplexity: '#6366f1',
+  Copilot:    '#0078d4',
+  'Meta AI':  '#0866ff',
+  Grok:       '#e7e9ea',
+};
 
-        <!-- ── TIMELINE ── -->
-        <div class="timeline-structure">
+function sourceColor(src) {
+  return SOURCE_COLORS[src] || '#94a3b8';
+}
 
-          <!-- TODAY -->
-          <div class="section-today">
-            <div class="container6">
-              <div class="container7">
-                <div class="text3">Today</div>
-              </div>
-              <div class="horizontal-divider"></div>
-            </div>
-            <div class="container8">
+function tagCls(tag) {
+  const m = {Tech:'tech',Science:'science',Health:'health',
+             Finance:'finance',History:'history',Other:'other'};
+  return 'tag-' + (m[tag] || 'other');
+}
 
-              <!-- History Item 1 -->
-              <div class="history-item" data-id="1">
-                <div class="container9">
-                  <div class="background-border">
-                    <svg width="18" height="18" fill="none" stroke="rgba(99,102,241,0.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                      <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
-                    </svg>
-                  </div>
-                  <div class="margin">
-                    <div class="text4">09:42</div>
-                  </div>
-                </div>
-                <div class="vertical-divider"></div>
-                <div class="overlay-border">
-                  <div class="container11">
-                    <div class="heading-3">
-                      <div class="text5">
-                        Analyze the neural efficiency of the MindTrace v1.0
-                        architecture compared to standard transformer models.
-                      </div>
-                    </div>
-                    <button class="item-action-btn" aria-label="More options">
-                      <svg width="16" height="4" fill="#40485d" viewBox="0 0 16 4">
-                        <circle cx="2" cy="2" r="2"/><circle cx="8" cy="2" r="2"/><circle cx="14" cy="2" r="2"/>
-                      </svg>
-                    </button>
-                  </div>
-                  <div class="container6">
-                    <div class="overlay-border2">
-                      <svg width="10" height="10" fill="none" stroke="rgba(99,102,241,0.8)" stroke-width="2" viewBox="0 0 24 24">
-                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                      </svg>
-                      <div class="text6">LLM-ULTRA</div>
-                    </div>
-                    <div class="overlay">
-                      <svg width="10" height="10" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24">
-                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                      </svg>
-                      <div class="text7">Technical Analysis</div>
-                    </div>
-                    <div class="margin2">
-                      <div class="container7">
-                        <div class="text8">2,450 tokens • 1.2s latency</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+function formatTime(dateStr) {
+  const d = new Date(dateStr);
+  return d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+}
 
-              <!-- History Item 2 -->
-              <div class="history-item" data-id="2">
-                <div class="container9">
-                  <div class="background-border2">
-                    <svg width="18" height="18" fill="none" stroke="rgba(6,182,212,0.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                      <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
-                      <polyline points="21 15 16 10 5 21"/>
-                    </svg>
-                  </div>
-                  <div class="margin">
-                    <div class="text4">08:15</div>
-                  </div>
-                </div>
-                <div class="overlay-border">
-                  <div class="paragraph">
-                    <div class="heading-3-generate-an-editorial-visual-concept-for-a-cognitive-data-visualization-dashboard">
-                      Generate an editorial visual concept for a cognitive data
-                      visualization dashboard.
-                    </div>
-                    <button class="item-action-btn" aria-label="More options">
-                      <svg width="16" height="4" fill="#40485d" viewBox="0 0 16 4">
-                        <circle cx="2" cy="2" r="2"/><circle cx="8" cy="2" r="2"/><circle cx="14" cy="2" r="2"/>
-                      </svg>
-                    </button>
-                  </div>
-                  <div class="container6">
-                    <div class="overlay-border3">
-                      <svg width="10" height="10" fill="none" stroke="rgba(6,182,212,0.8)" stroke-width="2" viewBox="0 0 24 24">
-                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                      </svg>
-                      <div class="text9">CREATIVE-GEN</div>
-                    </div>
-                    <div class="overlay">
-                      <svg width="10" height="10" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24">
-                        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
-                        <polyline points="21 15 16 10 5 21"/>
-                      </svg>
-                      <div class="text7">Visual Design</div>
-                    </div>
-                    <div class="margin3">
-                      <div class="container7">
-                        <div class="text8">Rendered Output • 4.5s latency</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+function groupLabel(dateStr) {
+  const now   = new Date();
+  const d     = new Date(dateStr);
+  const diffD = Math.floor((now - d) / 86400000);
+  if (d.toDateString() === now.toDateString()) return 'Today';
+  if (diffD === 1)  return 'Yesterday';
+  if (diffD < 7)   return 'This Week';
+  if (diffD < 14)  return 'Last Week';
+  return d.toLocaleDateString([], { month:'long', year:'numeric' });
+}
 
-            </div>
-          </div>
+function groupSearchesByDate(searches) {
+  const groups = {};
+  const order  = [];
+  searches.forEach(s => {
+    const label = groupLabel(s.timestamp || s.created_at);
+    if (!groups[label]) { groups[label] = []; order.push(label); }
+    groups[label].push(s);
+  });
+  const seen = new Set();
+  return order.filter(l => seen.has(l) ? false : seen.add(l))
+              .map(l => ({ label: l, items: groups[l] }));
+}
 
-          <!-- YESTERDAY -->
-          <div class="section-yesterday">
-            <div class="container6">
-              <div class="container7">
-                <div class="text10">Yesterday</div>
-              </div>
-              <div class="horizontal-divider"></div>
-            </div>
+/* ── STATE ──────────────────────────────── */
+let allSearches     = [];
+let displayedCount  = 20;
+const PAGE_SIZE     = 20;
+let activeTag       = 'All';
+let searchTimer     = null;
+let pendingDeleteId = null;
 
-            <!-- History Item 3 -->
-            <div class="history-item2" data-id="3">
-              <div class="container9">
-                <div class="background-border3">
-                  <svg width="18" height="18" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                    <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
-                  </svg>
-                </div>
-                <div class="margin">
-                  <div class="text4">14:22</div>
-                </div>
-              </div>
-              <div class="vertical-divider2"></div>
-              <div class="overlay-border">
-                <div class="paragraph">
-                  <div class="heading-3-debug-the-recursive-function-for-the-distributed-vector-database-indexing-system">
-                    Debug the recursive function for the distributed vector
-                    database indexing system.
-                  </div>
-                  <button class="item-action-btn" aria-label="More options">
-                    <svg width="16" height="4" fill="#40485d" viewBox="0 0 16 4">
-                      <circle cx="2" cy="2" r="2"/><circle cx="8" cy="2" r="2"/><circle cx="14" cy="2" r="2"/>
-                    </svg>
-                  </button>
-                </div>
-                <div class="container18">
-                  <div class="overlay">
-                    <svg width="10" height="10" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24">
-                      <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
-                    </svg>
-                    <div class="text7">CODE-ASSIST</div>
-                  </div>
-                  <div class="margin4">
-                    <div class="container7">
-                      <div class="text8">4,120 tokens • 0.8s latency</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+/* ── COMBINE SELECTION STATE ─────────────── */
+// Map of id → search object for currently selected cards
+let selectedItems   = new Map();
+let selectMode      = false;   // true when ≥1 card is checked
 
-          <!-- LAST WEEK -->
-          <div class="section-last-week">
-            <div class="container6">
-              <div class="container7">
-                <div class="text11">Last Week</div>
-              </div>
-              <div class="horizontal-divider"></div>
-            </div>
+/* ── SELECTION HELPERS ───────────────────── */
+function enterSelectMode() {
+  selectMode = true;
+  document.getElementById('timelineReal').classList.add('select-mode');
+  updateCombineBar();
+}
 
-            <div class="compact-bento-grid-for-older-history">
+function exitSelectMode() {
+  selectMode = false;
+  selectedItems.clear();
+  document.getElementById('timelineReal').classList.remove('select-mode');
+  // uncheck all checkboxes
+  document.querySelectorAll('.hi-checkbox').forEach(cb => { cb.checked = false; });
+  // remove selected class from all rows
+  document.querySelectorAll('.hi-row').forEach(r => r.classList.remove('hi-row--selected'));
+  updateCombineBar();
+}
 
-              <div class="overlay-border4" data-id="4">
-                <div class="paragraph">
-                  <div class="text12">MONDAY, OCT 23</div>
-                  <svg class="bento-icon" width="9" height="9" viewBox="0 0 9 9" fill="none">
-                    <circle cx="4.5" cy="4.5" r="4.5" fill="rgba(129,140,248,0.3)"/>
-                  </svg>
-                </div>
-                <div class="heading-4">
-                  <div class="recent-trends-in-the-field-of-robotics-in-todays-world">
-                    Recent trends in the field of robotics in todays world.
-                  </div>
-                </div>
-              </div>
+function toggleSelect(id, searchObj, checkboxEl, rowEl) {
+  if (selectedItems.has(id)) {
+    selectedItems.delete(id);
+    if (checkboxEl) checkboxEl.checked = false;
+    rowEl.classList.remove('hi-row--selected');
+  } else {
+    selectedItems.set(id, searchObj);
+    if (checkboxEl) checkboxEl.checked = true;
+    rowEl.classList.add('hi-row--selected');
+  }
 
-              <div class="overlay-border5" data-id="5">
-                <div class="paragraph">
-                  <div class="text12">SUNDAY, OCT 22</div>
-                  <svg class="bento-icon" width="9" height="9" viewBox="0 0 9 9" fill="none">
-                    <circle cx="4.5" cy="4.5" r="4.5" fill="rgba(129,140,248,0.3)"/>
-                  </svg>
-                </div>
-                <div class="heading-4">
-                  <div class="what-is-an-ai">what is an AI?</div>
-                </div>
-              </div>
+  if (selectedItems.size === 0) {
+    exitSelectMode();
+  } else {
+    enterSelectMode();
+  }
+}
 
-              <div class="overlay-border6" data-id="6">
-                <div class="paragraph">
-                  <div class="text12">SATURDAY, OCT 21</div>
-                  <svg class="bento-icon" width="9" height="9" viewBox="0 0 9 9" fill="none">
-                    <circle cx="4.5" cy="4.5" r="4.5" fill="rgba(129,140,248,0.3)"/>
-                  </svg>
-                </div>
-                <div class="heading-4">
-                  <div class="convert-this-picture-into-smiley-face">
-                    Convert this picture into smiley face.
-                  </div>
-                </div>
-              </div>
+function updateCombineBar() {
+  const bar   = document.getElementById('combineBar');
+  const count = selectedItems.size;
 
-              <div class="overlay-border7" data-id="7">
-                <div class="paragraph">
-                  <div class="text12">FRIDAY, OCT 20</div>
-                  <svg class="bento-icon" width="9" height="9" viewBox="0 0 9 9" fill="none">
-                    <circle cx="4.5" cy="4.5" r="4.5" fill="rgba(129,140,248,0.3)"/>
-                  </svg>
-                </div>
-                <div class="heading-4">
-                  <div class="give-me-a-python-code-for-factorial-of-7">
-                    Give me a Python Code for factorial of 7.
-                  </div>
-                </div>
-              </div>
+  if (count >= 2) {
+    bar.classList.add('visible');
+    document.getElementById('combineCount').textContent = count;
+    document.getElementById('combineBtn').disabled = false;
 
-            </div>
-          </div>
+    // Show platform badges in bar
+    const platforms = [...selectedItems.values()].map(s => s.source || 'Unknown');
+    const unique    = [...new Set(platforms)];
+    document.getElementById('combinePlatforms').innerHTML = unique
+      .map(p => `<span class="cb-platform" style="background:${sourceColor(p)}22;color:${sourceColor(p)};border:1px solid ${sourceColor(p)}44">${escHtml(p)}</span>`)
+      .join('');
+  } else {
+    bar.classList.remove('visible');
+    document.getElementById('combinePlatforms').innerHTML = '';
+  }
 
-        </div>
+  // Update select-all button label
+  const saBtn = document.getElementById('selectAllBtn');
+  if (saBtn) {
+    const filtered = getFilteredSearches().slice(0, displayedCount);
+    saBtn.textContent = selectedItems.size === filtered.length ? 'Deselect All' : 'Select All';
+  }
+}
 
-        <!-- Load more -->
-        <div class="load-more-interaction">
-          <button class="button2" id="loadMoreBtn">
-            <div class="older-traces">OLDER TRACES</div>
-            <div class="background-border4">
-              <svg width="16" height="16" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                <line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>
-              </svg>
-            </div>
-          </button>
-        </div>
+/* ── RENDER TIMELINE ────────────────────── */
+function renderTimeline(searches) {
+  const container = document.getElementById('timelineReal');
+  const loading   = document.getElementById('histLoading');
+  if (loading) loading.style.display = 'none';
 
-      </div>
-
-      <!-- ── FOOTER ── -->
-      <div class="aesthetic-footer-overlay">
-        <div class="container21">
-          <div class="container22">
-            <div class="overlay2">
-              <div class="background"></div>
-            </div>
-            <div class="container7">
-              <div class="recall-ai-cloud-sync-active">Recall AI Cloud Sync Active</div>
-            </div>
-          </div>
-          <div class="container23"></div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- ── SIDEBAR ── -->
-    <aside class="aside-side-nav-bar-authority-shared-components-json">
-      <div class="group-1">
-        <img class="background2" src="background1.png" alt="Recall AI Logo" />
-        <div class="recall-ai">Recall AI</div>
-      </div>
-
-      <nav class="nav">
-        <div class="link-css-transform">
-          <a class="link" href="../dashboard-page/dashboard.html">
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-              <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-            </svg>
-            <div class="container7">
-              <div class="text13">DASHBOARD</div>
-            </div>
-          </a>
-        </div>
-        <div class="link-active-state-history-css-transform">
-          <a class="link-active-state-history" href="history.html">
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-              <polyline points="12 8 12 12 14 14"/>
-              <path d="M3.05 11a9 9 0 1 1 .5 4m-.5 5v-5h5"/>
-            </svg>
-            <div class="container7">
-              <div class="text14">HISTORY</div>
-            </div>
-          </a>
-        </div>
-        <div class="link-css-transform">
-          <a class="link" href="../setting-page/setting.html">
-
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-            </svg>
-            <div class="container7">
-              <div class="text13">SETTINGS</div>
-            </div>
-          </a>
-        </div>
-      </nav>
-
-      <div class="margin5"></div>
-    </aside>
-
-    <!-- ── FLOATING NEW QUERY BUTTON ── -->
-    <button class="floating-ui-element-active-focus" id="newQueryBtn">
-      <div class="floating-ui-element-active-focus-shadow"></div>
-      <div class="background3">
-        <svg width="16" height="16" fill="none" stroke="#4f46e5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  if (!searches || searches.length === 0) {
+    container.innerHTML = `
+      <div class="hist-empty">
+        <svg width="44" height="44" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1.5" viewBox="0 0 24 24">
+          <polyline points="12 8 12 12 14 14"/>
+          <path d="M3.05 11a9 9 0 1 1 .5 4m-.5 5v-5h5"/>
         </svg>
-      </div>
-      <div class="container7">
-        <div class="text15">NEW QUERY</div>
-      </div>
-    </button>
+        <span style="font-size:13px;">No searches found. Start using ChatGPT to build your history.</span>
+      </div>`;
+    document.getElementById('loadMoreBtn').style.display = 'none';
+    return;
+  }
 
-    <!-- Toast -->
-    <div class="toast" id="toast" role="alert">
-      <span class="toast-icon" id="toastIcon">✓</span>
-      <span class="toast-msg" id="toastMsg"></span>
-    </div>
+  const slice  = searches.slice(0, displayedCount);
+  const groups = groupSearchesByDate(slice);
 
-  </div>
+  container.innerHTML = '';
 
-  <script src="history.js"></script>
-</body>
-</html>
+  groups.forEach((group, gi) => {
+    const groupEl = document.createElement('div');
+    groupEl.className = 'date-group';
+
+    // Group header
+    const header = document.createElement('div');
+    header.className = 'date-group-header';
+    header.innerHTML = `
+      <div class="date-group-label">${escHtml(group.label)}</div>
+      <div class="date-group-line"></div>
+    `;
+    groupEl.appendChild(header);
+
+    // Items
+    group.items.forEach((s, i) => {
+      const tag    = s.tag || 'Other';
+      const colors = TAG_COLORS[tag] || TAG_COLORS['Other'];
+      const icon   = TAG_ICONS[tag]  || '🔍';
+      const srcCol = sourceColor(s.source || 'ChatGPT');
+      const isSelected = selectedItems.has(s.id);
+
+      const row = document.createElement('div');
+      row.className   = 'hi-row' + (isSelected ? ' hi-row--selected' : '');
+      row.dataset.id  = s.id;
+      row.style.opacity   = '0';
+      row.style.transform = 'translateY(14px)';
+
+      row.innerHTML = `
+        <label class="hi-checkbox-wrap" title="Select for combine">
+          <input type="checkbox" class="hi-checkbox" ${isSelected ? 'checked' : ''} />
+          <span class="hi-checkbox-custom"></span>
+        </label>
+        <div class="hi-left">
+          <div class="hi-icon-wrap" style="background:${colors.bg}">${icon}</div>
+          <div class="hi-time">${formatTime(s.timestamp || s.created_at)}</div>
+        </div>
+        <div class="hi-card">
+          <div class="hi-card-top">
+            <div class="hi-query">${escHtml(s.query)}</div>
+            <div class="hi-actions">
+              <button class="hi-action-btn delete-btn" title="Delete" data-id="${s.id}">✕</button>
+            </div>
+          </div>
+          ${s.summary ? `<div class="hi-summary-preview">${escHtml(s.summary.substring(0, 120))}${s.summary.length > 120 ? '…' : ''}</div>` : ''}
+          <div class="hi-card-bottom">
+            <div class="hi-tag ${tagCls(tag)}">${tag}</div>
+            <div class="hi-source" style="color:${srcCol};opacity:0.85;font-weight:600;">${escHtml(s.source || 'ChatGPT')}</div>
+          </div>
+        </div>
+      `;
+
+      // Checkbox click → toggle selection
+      const cb = row.querySelector('.hi-checkbox');
+      cb.addEventListener('change', function(e) {
+        e.stopPropagation();
+        toggleSelect(s.id, s, cb, row);
+      });
+
+      // Click card → open summary (not delete, not checkbox)
+      row.addEventListener('click', function(e) {
+        if (e.target.closest('.delete-btn')) return;
+        if (e.target.closest('.hi-checkbox-wrap')) return;
+        // In select mode, clicking card toggles selection
+        if (selectMode) {
+          toggleSelect(s.id, s, cb, row);
+          return;
+        }
+        openSummaryModal(s);
+      });
+
+      // Delete button
+      row.querySelector('.delete-btn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        pendingDeleteId = s.id;
+        document.getElementById('confirmOverlay').classList.add('open');
+      });
+
+      groupEl.appendChild(row);
+
+      // Staggered animation
+      const delay = gi * 30 + i * 45;
+      setTimeout(() => {
+        row.style.transition = 'opacity 0.35s ease, transform 0.35s ease';
+        row.style.opacity    = '1';
+        row.style.transform  = 'translateY(0)';
+      }, delay);
+    });
+
+    container.appendChild(groupEl);
+  });
+
+  // Load more button
+  const lmBtn = document.getElementById('loadMoreBtn');
+  lmBtn.style.display = searches.length > displayedCount ? 'block' : 'none';
+}
+
+/* ── SUMMARY MODAL ──────────────────────── */
+function openSummaryModal(s) {
+  const tag    = s.tag || 'Other';
+  const smTag  = document.getElementById('smTag');
+  smTag.textContent = tag;
+  smTag.className   = 'sm-tag ' + tagCls(tag);
+
+  document.getElementById('smTitle').textContent =
+    s.query.length > 90 ? s.query.slice(0,90) + '…' : s.query;
+
+  const srcCol = sourceColor(s.source || 'ChatGPT');
+  document.getElementById('smSource').innerHTML =
+    `📡 <span style="color:${srcCol};font-weight:700;">${escHtml(s.source || 'ChatGPT')}</span>`;
+  document.getElementById('smTime').textContent =
+    '🕐 ' + new Date(s.timestamp || s.created_at).toLocaleString();
+
+  const smBody = document.getElementById('smSummary');
+  if (s.summary && s.summary.trim()) {
+    // Render paragraphs properly
+    smBody.innerHTML = s.summary.split(/\n\n+/).map(p =>
+      `<p style="margin-bottom:12px;last-child:margin-bottom:0">${escHtml(p.trim())}</p>`
+    ).join('');
+    smBody.style.color = 'rgba(255,255,255,0.78)';
+  } else {
+    smBody.textContent = 'No AI summary available for this search.';
+    smBody.style.color = 'rgba(255,255,255,0.32)';
+  }
+
+  document.getElementById('smQuery').textContent = '"' + s.query + '"';
+  document.getElementById('summaryOverlay').classList.add('open');
+
+  document.getElementById('summaryOverlay').onclick = function(e) {
+    if (e.target === this) closeSummaryModal();
+  };
+}
+function closeSummaryModal() {
+  document.getElementById('summaryOverlay').classList.remove('open');
+}
+
+/* ── COMBINED SUMMARY RENDERER ──────────── */
+// Converts the structured text from Groq into rich HTML:
+// • Lines starting with • become styled bullet points
+// **word** becomes <strong>word</strong>
+// (Platform) citations become colored badge spans
+function renderCombinedText(txt) {
+  const platformColors = {
+    'chatgpt':    '#10b981',
+    'claude':     '#f59e0b',
+    'gemini':     '#6366f1',
+    'perplexity': '#be83fa',
+    'copilot':    '#0ea5e9',
+    'meta ai':    '#3b82f6',
+    'grok':       '#ec4899',
+  };
+
+  function getPlatformColor(name) {
+    const key = name.toLowerCase();
+    return platformColors[key] || 'rgba(255,255,255,0.5)';
+  }
+
+  // Process inline formatting: **bold** and (Platform) citations
+  function processInline(text) {
+    // Escape HTML first (but we'll re-add our formatting)
+    let safe = escHtml(text);
+
+    // **bold terms** → <strong>
+    safe = safe.replace(/\*\*([^*]+)\*\*/g,
+      '<strong style="color:#e2e8ff;font-weight:700;">$1</strong>');
+
+    // (Platform) citations → colored badges
+    safe = safe.replace(/\(([A-Za-z ]+)\)/g, function(match, name) {
+      const trimmed = name.trim();
+      // Only style it if it looks like a platform name (short, no punctuation)
+      if (trimmed.length > 0 && trimmed.length < 25 && !/\d/.test(trimmed)) {
+        const col = getPlatformColor(trimmed);
+        return `<span style="display:inline-block;padding:1px 7px;margin-left:3px;border-radius:10px;font-size:10px;font-weight:700;letter-spacing:0.03em;background:${col}22;color:${col};border:1px solid ${col}44;vertical-align:middle;">${escHtml(trimmed)}</span>`;
+      }
+      return match; // not a platform — keep as-is
+    });
+
+    return safe;
+  }
+
+  // Split into lines and process
+  const lines = txt.split('\n');
+  let html = '';
+  let inBulletList = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+
+    if (!line) {
+      // Blank line — close bullet list if open, start new paragraph gap
+      if (inBulletList) {
+        html += '</ul>';
+        inBulletList = false;
+      }
+      continue;
+    }
+
+    // Bullet line — starts with • or - or *
+    if (/^[•\-\*]\s/.test(line)) {
+      if (!inBulletList) {
+        html += '<ul class="cm-bullet-list">';
+        inBulletList = true;
+      }
+      const bulletContent = line.replace(/^[•\-\*]\s+/, '').trim();
+      html += `<li class="cm-bullet-item">${processInline(bulletContent)}</li>`;
+    } else {
+      // Regular paragraph line
+      if (inBulletList) {
+        html += '</ul>';
+        inBulletList = false;
+      }
+      html += `<p class="cm-para">${processInline(line)}</p>`;
+    }
+  }
+
+  // Close any open list
+  if (inBulletList) html += '</ul>';
+
+  return html || '<p style="color:rgba(255,255,255,0.3)">No content to display.</p>';
+}
+
+/* ── COMBINED SUMMARY MODAL ─────────────── */
+function openCombinedModal(data) {
+  const modal = document.getElementById('combinedOverlay');
+
+  // Platforms row
+  const platforms = data.platforms || [];
+  document.getElementById('cmPlatforms').innerHTML = platforms
+    .map(p => `<span class="cb-platform" style="background:${sourceColor(p)}22;color:${sourceColor(p)};border:1px solid ${sourceColor(p)}44">${escHtml(p)}</span>`)
+    .join('');
+
+  document.getElementById('cmCount').textContent =
+    `${data.searchCount || platforms.length} sources combined`;
+
+  document.getElementById('cmTopic').textContent = data.topic || '';
+
+  // Render combined summary — supports paragraphs, • bullets, **bold**, (Platform) citations
+  const bodyEl = document.getElementById('cmBody');
+  const txt = (data.combinedSummary || '').trim();
+  if (txt) {
+    bodyEl.innerHTML = renderCombinedText(txt);
+  } else {
+    bodyEl.innerHTML = '<p style="color:rgba(255,255,255,0.3)">Could not generate combined summary.</p>';
+  }
+
+  modal.classList.add('open');
+  modal.onclick = function(e) {
+    if (e.target === this) closeCombinedModal();
+  };
+}
+function closeCombinedModal() {
+  document.getElementById('combinedOverlay').classList.remove('open');
+}
+
+/* ── COMBINE ACTION ─────────────────────── */
+async function doCombine() {
+  if (selectedItems.size < 2) {
+    showToast('Select at least 2 searches to combine', 'error');
+    return;
+  }
+
+  const ids    = [...selectedItems.keys()];
+  const items  = [...selectedItems.values()];
+
+  // Use the most common query as the topic (or the first one)
+  const topic = items[0].query;
+
+  // Show loading state on button
+  const btn = document.getElementById('combineBtn');
+  const originalHTML = btn.innerHTML;
+  btn.disabled  = true;
+  btn.innerHTML = `<span class="cb-spinner"></span> Combining…`;
+
+  try {
+    const res = await fetch(API.combine, {
+      method:  'POST',
+      headers: await authHeaders(),
+      body:    JSON.stringify({ topic, searchIds: ids })
+    });
+
+    if (res.status === 401) { logout(); return; }
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      showToast(data.error || 'Combine failed — try again', 'error');
+      btn.disabled  = false;
+      btn.innerHTML = originalHTML;
+      return;
+    }
+
+    // Success — open the combined modal
+    data.topic = topic;
+    openCombinedModal(data);
+
+    // Exit select mode
+    exitSelectMode();
+
+  } catch (err) {
+    console.error('[Recall AI] Combine error:', err);
+    showToast('Network error — is the backend running?', 'error');
+    btn.disabled  = false;
+    btn.innerHTML = originalHTML;
+  }
+}
+
+/* ── SELECT ALL ─────────────────────────── */
+function toggleSelectAll() {
+  const filtered = getFilteredSearches().slice(0, displayedCount);
+  if (selectedItems.size === filtered.length) {
+    // All selected → deselect all
+    exitSelectMode();
+  } else {
+    // Select all visible
+    filtered.forEach(s => selectedItems.set(s.id, s));
+    enterSelectMode();
+    // Update checkboxes in DOM
+    document.querySelectorAll('.hi-row').forEach(row => {
+      const id = Number(row.dataset.id) || row.dataset.id;
+      if (selectedItems.has(id) || selectedItems.has(String(id))) {
+        const cb = row.querySelector('.hi-checkbox');
+        if (cb) cb.checked = true;
+        row.classList.add('hi-row--selected');
+      }
+    });
+    updateCombineBar();
+  }
+}
+
+/* ── DELETE ─────────────────────────────── */
+async function doDelete() {
+  if (!pendingDeleteId) return;
+  const id = pendingDeleteId;
+  pendingDeleteId = null;
+  document.getElementById('confirmOverlay').classList.remove('open');
+
+  try {
+    const res = await fetch(API.delete + id, {
+      method: 'DELETE', headers: await authHeaders()
+    });
+    if (res.status === 401) { logout(); return; }
+    if (res.ok) {
+      allSearches = allSearches.filter(s => s.id !== id && s.id !== Number(id));
+      // Also remove from selection if present
+      selectedItems.delete(id);
+      selectedItems.delete(Number(id));
+      renderTimeline(getFilteredSearches());
+      updateCombineBar();
+      showToast('Search deleted', 'success');
+    } else {
+      showToast('Could not delete — try again', 'error');
+    }
+  } catch (err) {
+    showToast('Delete failed', 'error');
+    console.error('[Recall AI] Delete error:', err);
+  }
+}
+
+/* ── FILTERING ──────────────────────────── */
+function getFilteredSearches() {
+  let result = allSearches;
+  if (activeTag !== 'All') {
+    result = result.filter(s => (s.tag || 'Other') === activeTag);
+  }
+  return result;
+}
+
+function applyFilter(tag) {
+  activeTag = tag;
+  document.querySelectorAll('.filter-option').forEach(opt => {
+    opt.classList.toggle('active', opt.dataset.tag === tag);
+  });
+  const label = document.getElementById('filterLabel');
+  label.textContent = tag === 'All' ? 'Filter' : tag;
+  closeDropdown();
+  displayedCount = PAGE_SIZE;
+  exitSelectMode();
+  renderTimeline(getFilteredSearches());
+}
+
+/* ── SEARCH ─────────────────────────────── */
+function handleSearch(e) {
+  clearTimeout(searchTimer);
+  const q = e.target.value.trim().toLowerCase();
+  if (!q) { renderTimeline(getFilteredSearches()); return; }
+  searchTimer = setTimeout(() => {
+    const filtered = getFilteredSearches().filter(s =>
+      (s.query   || '').toLowerCase().includes(q) ||
+      (s.summary || '').toLowerCase().includes(q) ||
+      (s.tag     || '').toLowerCase().includes(q)
+    );
+    renderTimeline(filtered);
+  }, 300);
+}
+
+/* ── FILTER DROPDOWN ────────────────────── */
+function toggleDropdown() { document.getElementById('filterDropdown').classList.toggle('open'); }
+function closeDropdown()  { document.getElementById('filterDropdown').classList.remove('open'); }
+
+/* ── LOAD MORE ──────────────────────────── */
+function loadMore() {
+  displayedCount += PAGE_SIZE;
+  renderTimeline(getFilteredSearches());
+}
+
+/* ── PROFILE ────────────────────────────── */
+function getProfileData() {
+  try { const r = localStorage.getItem('recallai_profile'); return r ? JSON.parse(r) : null; }
+  catch { return null; }
+}
+function makeInitials(fn, ln) {
+  return [(fn||'')[0],(ln||'')[0]].filter(Boolean).join('').toUpperCase() || '?';
+}
+function applyProfileToHeader() {
+  const p = getProfileData();
+  if (!p) {
+    try {
+      chrome.storage.local.get(['recall_user'], (s) => {
+        try {
+          const u = typeof s.recall_user === 'string'
+            ? JSON.parse(s.recall_user || '{}') : (s.recall_user || {});
+          const nameEl = document.getElementById('userName');
+          if (nameEl && u.name) nameEl.textContent = u.name;
+          const emailEl = document.getElementById('userEmailDisplay');
+          if (emailEl && u.email) emailEl.textContent = u.email;
+          const initialsEl = document.getElementById('historyInitials');
+          if (initialsEl && u.name) {
+            const parts = u.name.trim().split(/\s+/);
+            initialsEl.textContent = parts.length > 1
+              ? (parts[0][0] + parts[parts.length-1][0]).toUpperCase()
+              : parts[0].slice(0,2).toUpperCase();
+          }
+        } catch {}
+      });
+    } catch {}
+    return;
+  }
+  const fullName = [p.firstName,p.lastName].filter(Boolean).join(' ') || p.displayName || '';
+  const email    = p.email || '';
+  const initials = makeInitials(p.firstName, p.lastName);
+  const nameEl = document.getElementById('userName');
+  if (nameEl && fullName) nameEl.textContent = fullName;
+  const emailEl = document.getElementById('userEmailDisplay');
+  if (emailEl && email) emailEl.textContent = email;
+  const initialsEl = document.getElementById('historyInitials');
+  if (initialsEl) initialsEl.textContent = initials;
+  if (p.avatarSrc) {
+    const avatarEl = document.getElementById('historyAvatar');
+    if (avatarEl) {
+      avatarEl.style.backgroundImage    = `url('${p.avatarSrc}')`;
+      avatarEl.style.backgroundSize     = 'cover';
+      avatarEl.style.backgroundPosition = 'center';
+      const span = avatarEl.querySelector('span');
+      if (span) span.style.display = 'none';
+    }
+  }
+}
+
+/* ── LOAD DATA ──────────────────────────── */
+async function loadHistory() {
+  try {
+    const res = await fetch(API.history, { headers: await authHeaders() });
+    if (res.status === 401) { logout(); return; }
+    if (res.ok) {
+      const data  = await res.json();
+      allSearches = data.searches || [];
+      renderTimeline(getFilteredSearches());
+    } else {
+      renderTimeline([]);
+    }
+    applyProfileToHeader();
+    const profileCard = document.getElementById('profileCard');
+    if (profileCard) {
+      const go = () => { window.location.href = '../profile-page/profile.html'; };
+      profileCard.addEventListener('click', go);
+      profileCard.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' ') go(); });
+    }
+  } catch (err) {
+    console.error('[Recall AI] History load error:', err);
+    renderTimeline([]);
+  }
+}
+
+/* ── INIT ───────────────────────────────── */
+function init() {
+  // Search input
+  const si = document.getElementById('searchInput');
+  if (si) si.addEventListener('input', handleSearch);
+
+  // Filter button
+  const fb = document.getElementById('filterBtn');
+  if (fb) fb.addEventListener('click', function(e) { e.stopPropagation(); toggleDropdown(); });
+
+  // Filter options
+  document.querySelectorAll('.filter-option').forEach(opt => {
+    opt.addEventListener('click', function() { applyFilter(opt.dataset.tag); });
+  });
+
+  // Close dropdown on outside click
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.filter-wrap')) closeDropdown();
+  });
+
+  // Summary modal close
+  const smClose = document.getElementById('smClose');
+  if (smClose) smClose.addEventListener('click', closeSummaryModal);
+
+  // Confirm delete
+  document.getElementById('confirmCancel').addEventListener('click', () => {
+    pendingDeleteId = null;
+    document.getElementById('confirmOverlay').classList.remove('open');
+  });
+  document.getElementById('confirmDelete').addEventListener('click', doDelete);
+
+  // Load more
+  const lmBtn = document.getElementById('loadMoreBtn');
+  if (lmBtn) lmBtn.addEventListener('click', loadMore);
+
+  // New query FAB - opens platform selector popup
+  const nqBtn = document.getElementById('newQueryBtn');
+  if (nqBtn) {
+    nqBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var overlay = document.getElementById('platformPopupOverlay');
+      if (overlay) overlay.classList.add('pp-open');
+    });
+  }
+
+  // Platform popup close handlers
+  var platformOverlay = document.getElementById('platformPopupOverlay');
+  var platformClose = document.getElementById('platformPopupClose');
+
+  function closePlatformPopup() {
+    var overlay = document.getElementById('platformPopupOverlay');
+    if (overlay) overlay.classList.remove('pp-open');
+  }
+
+  if (platformClose) {
+    platformClose.addEventListener('click', function(e) {
+      e.stopPropagation();
+      closePlatformPopup();
+    });
+  }
+
+  if (platformOverlay) {
+    platformOverlay.addEventListener('click', function(e) {
+      if (e.target === platformOverlay) closePlatformPopup();
+    });
+  }
+
+  document.querySelectorAll('.pp-card').forEach(function(card) {
+    card.addEventListener('click', function() {
+      setTimeout(closePlatformPopup, 150);
+    });
+  });
+
+  // Notifications
+  const nb = document.getElementById('notifBtn');
+  if (nb) nb.addEventListener('click', () => showToast('No new notifications', 'success'));
+
+  // Escape key closes everything
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      closeSummaryModal();
+      closeCombinedModal();
+      closeDropdown();
+      if (selectMode) exitSelectMode();
+    }
+  });
+
+  // ── Combine bar buttons ──────────────────
+  const combineBtn = document.getElementById('combineBtn');
+  if (combineBtn) combineBtn.addEventListener('click', doCombine);
+
+  const cancelSelectBtn = document.getElementById('cancelSelectBtn');
+  if (cancelSelectBtn) cancelSelectBtn.addEventListener('click', exitSelectMode);
+
+  const selectAllBtn = document.getElementById('selectAllBtn');
+  if (selectAllBtn) selectAllBtn.addEventListener('click', toggleSelectAll);
+
+  // ── Combined modal close ─────────────────
+  const cmClose = document.getElementById('cmClose');
+  if (cmClose) cmClose.addEventListener('click', closeCombinedModal);
+
+  // Copy combined summary
+  const cmCopy = document.getElementById('cmCopy');
+  if (cmCopy) cmCopy.addEventListener('click', () => {
+    const text = document.getElementById('cmBody').innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('Summary copied to clipboard!', 'success');
+    }).catch(() => showToast('Could not copy', 'error'));
+  });
+}
+
+/* ── BOOT ───────────────────────────────── */
+document.addEventListener('DOMContentLoaded', async function() {
+  await checkAuth();
+  init();
+  loadHistory();
+});
