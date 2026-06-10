@@ -383,6 +383,19 @@ html, body {
 .form-input::placeholder { color: var(--text-faint); }
 .form-input:focus { border-color: var(--indigo-border); }
 
+.form-input:focus { border-color: var(--indigo-border); }
+
+/* ── Fix browser autofill white background ── */
+.form-input:-webkit-autofill,
+.form-input:-webkit-autofill:hover,
+.form-input:-webkit-autofill:focus,
+.form-input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-input) inset !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  caret-color: var(--text-primary) !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
 .input-with-badge { position: relative; }
 .input-with-badge .form-input { padding-right: 72px; }
 .input-badge {
