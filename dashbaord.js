@@ -4,8 +4,6 @@
 ───────────────────────────────────────── */
 'use strict';
 
-const IS_EXT = (typeof chrome !== 'undefined' && chrome.storage && chrome.runtime && chrome.runtime.id);
-
 const BACKEND_URL = 'http://localhost:5000';
 
 const API = {
@@ -17,20 +15,18 @@ const API = {
 
 /* ── AUTH (chrome.storage.local) ────────── */
 async function getToken() {
-  if (IS_EXT) return new Promise(resolve => {
+  return new Promise(resolve => {
     chrome.storage.local.get(['recall_token'], r => resolve(r.recall_token || null));
   });
-  return Promise.resolve(localStorage.getItem('recall_token'));
 }
 
 async function getUser() {
-  if (IS_EXT) return new Promise(resolve => {
+  return new Promise(resolve => {
     chrome.storage.local.get(['recall_user'], r => {
       try { resolve(JSON.parse(r.recall_user || '{}')); }
       catch { resolve({}); }
     });
   });
-  try { return JSON.parse(localStorage.getItem('recall_user') || '{}'); } catch { return {}; }
 }
 
 async function authHeaders() {
@@ -42,14 +38,12 @@ async function authHeaders() {
 }
 
 async function checkAuth() {
-  if (!IS_EXT) return;
   const token = await getToken();
   if (!token) window.location.href = '../login-page/login.html';
 }
 
 async function logout() {
-  if (IS_EXT) await new Promise(r => chrome.storage.local.remove(['recall_token','recall_user'], r));
-  else { localStorage.removeItem('recall_token'); localStorage.removeItem('recall_user'); }
+  await new Promise(r => chrome.storage.local.remove(['recall_token','recall_user'], r));
   window.location.href = '../login-page/login.html';
 }
 
@@ -310,7 +304,7 @@ async function loadDashboardData() {
       // This ensures the subscription Usage page shows the true
       // backend total, not just locally-incremented counts.
       const realCount = allSearches.length;
-      if (IS_EXT) chrome.storage.local.get(['recallUsage'], (stored) => {
+      chrome.storage.local.get(['recallUsage'], (stored) => {
         const usage = stored.recallUsage || { searches: 0, apiCalls: 0, storageMb: 0, exports: 0 };
         // Only update if backend count is higher (prevents going backwards on stale cache)
         if (realCount >= (usage.searches || 0)) {
@@ -338,22 +332,7 @@ async function loadDashboardData() {
 
   } catch(err) {
     console.error('[Recall AI] Dashboard load error:', err);
-    if (!IS_EXT) {
-      const el = document.getElementById('insightText');
-      if (el) el.textContent = "You've made 24 AI searches this week — up 12% from last week. Top topics: Machine Learning, Design Systems, Python.";
-      const DEMO = [
-        { id:1, query:'How does transformer architecture work in modern LLMs?', created_at: new Date(Date.now()-1800000).toISOString(), tag:'Tech', summary:'Transformer models use self-attention mechanisms to process sequences in parallel, enabling more efficient training than RNNs.' },
-        { id:2, query:'Best practices for CSS Grid layout in 2025', created_at: new Date(Date.now()-7200000).toISOString(), tag:'Tech', summary:'CSS Grid provides a two-dimensional layout system. Key: grid-template-columns, fr units, grid-area naming, auto-placement.' },
-        { id:3, query:'Explain quantum entanglement simply', created_at: new Date(Date.now()-86400000).toISOString(), tag:'Science', summary:'Quantum entanglement correlates two particles so their quantum states cannot be described independently of each other.' },
-        { id:4, query:'Mediterranean diet health benefits', created_at: new Date(Date.now()-172800000).toISOString(), tag:'Health', summary:'Studies show the Mediterranean diet reduces cardiovascular risk by 30%, improves cognitive function, and supports longevity.' },
-        { id:5, query:'JavaScript async/await vs Promises', created_at: new Date(Date.now()-259200000).toISOString(), tag:'Tech', summary:'Async/await is syntactic sugar over Promises. It makes async code look synchronous without changing behavior.' },
-        { id:6, query:'History of the Byzantine Empire', created_at: new Date(Date.now()-345600000).toISOString(), tag:'History', summary:'The Byzantine Empire lasted from 330 CE to 1453 CE, preserving Roman law and Greek culture.' },
-      ];
-      allSearches = DEMO;
-      renderActivityList(DEMO);
-    } else {
-      renderActivityList([]);
-    }
+    renderActivityList([]);
   }
 }
 
@@ -382,8 +361,45 @@ function init() {
   const analysisBtn = document.getElementById('viewAnalysisBtn');
   if (analysisBtn) analysisBtn.addEventListener('click', () => { window.location.href = '../history-page/history.html'; });
 
+  // FAB button - opens platform selector popup
   const fabBtn = document.getElementById('fabBtn');
-  if (fabBtn) fabBtn.addEventListener('click', () => showToast('Open ChatGPT, Gemini, or Claude to start tracking!', 'success'));
+  if (fabBtn) {
+    fabBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var overlay = document.getElementById('platformPopupOverlay');
+      if (overlay) overlay.classList.add('pp-open');
+    });
+  }
+
+  // Platform popup close handlers
+  var platformOverlay = document.getElementById('platformPopupOverlay');
+  var platformClose = document.getElementById('platformPopupClose');
+
+  function closePlatformPopup() {
+    var overlay = document.getElementById('platformPopupOverlay');
+    if (overlay) overlay.classList.remove('pp-open');
+  }
+
+  if (platformClose) {
+    platformClose.addEventListener('click', function(e) {
+      e.stopPropagation();
+      closePlatformPopup();
+    });
+  }
+
+  if (platformOverlay) {
+    platformOverlay.addEventListener('click', function(e) {
+      if (e.target === platformOverlay) closePlatformPopup();
+    });
+  }
+
+  document.querySelectorAll('.pp-card').forEach(function(card) {
+    card.addEventListener('click', function() {
+      setTimeout(closePlatformPopup, 150);
+    });
+  });
+  });
 
   // Logout button (if exists in dashboard HTML)
   const logoutBtn = document.getElementById('logoutBtn');
