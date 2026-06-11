@@ -1,20 +1,13 @@
 /* ═══════════════════════════════════════════════════════════════
-   RECALL AI — content.js  (isolated world)
+   RECALL AI — content.js   (isolated world)
 
-   WHAT THIS FILE DOES:
-   ─────────────────────
-   • Receives postMessages from page-context.js (MAIN world)
-     which intercepts fetch/XHR at the network level.
-   • Runs DOM observer + keyboard backups as safety nets.
-   • Deduplicates and validates captured prompts.
-   • Forwards captured prompts to background.js → backend.
+   This file runs in the extension's isolated world.
+   It receives prompts captured by page-context.js (MAIN world)
+   via postMessage, deduplicates them, validates them, and
+   forwards them to background.js which saves them to the backend.
 
-   NOTE: The actual fetch/XHR wrapping lives in page-context.js
-   which runs in world: "MAIN" (registered in manifest.json).
-   Content scripts run in an isolated world and cannot access
-   the page's window.fetch — that's why page-context.js exists.
-   The old approach (injecting a <script> tag from here) was
-   blocked by ChatGPT/Claude/Gemini's Content-Security-Policy.
+   DOM observer + keyboard/button listeners are kept as backups
+   for cases where the network interceptor misses something.
 ═══════════════════════════════════════════════════════════════ */
 
 'use strict';
@@ -39,7 +32,13 @@ let lastQuery     = '';
 let lastQueryTime = 0;
 let isInitialized = false;
 
-// sessionStorage-backed dedup: survives SPA navigation (URL changes)
+// sessionStorage-backed dedup — survives SPA navigation.
+// KEY CHANGE: the dedup key includes SOURCE so that the same prompt
+// searched on ChatGPT and then on Gemini/Claude is saved separately.
+// Each platform's capture is independent. We only deduplicate the
+// exact same (text + platform) pair within 5 minutes, which prevents
+// double-saves when both the network interceptor AND the DOM backup
+// fire for the same submission on the same platform.
 const _SS_KEY = '__recall_seen__';
 const _SS_TTL = 5 * 60 * 1000; // 5 minutes
 
@@ -52,12 +51,17 @@ function _ssWrite(obj) {
 
 function isDuplicateQuery(q) {
   if (!q || q.length < 3) return true;
-  // In-memory check: same prompt within 15 s (covers multiple interceptors firing)
+
+  // In-memory burst check: same text from the SAME source within 15 s.
+  // (Gemini can fire both fetch and XHR interceptors for the same prompt.)
   if (q === lastQuery && Date.now() - lastQueryTime < 15000) return true;
-  // Cross-navigation check via sessionStorage
+
+  // Cross-navigation persistence — key includes SOURCE so the same text
+  // on a different platform is NOT treated as a duplicate.
   const seen = _ssRead();
-  const key  = q.toLowerCase().trim().slice(0, 120);
+  const key  = SOURCE + ':' + q.toLowerCase().trim().slice(0, 120);
   if (seen[key] && Date.now() - seen[key] < _SS_TTL) return true;
+
   return false;
 }
 
@@ -65,29 +69,46 @@ function markQuery(q) {
   lastQuery     = q;
   lastQueryTime = Date.now();
   const seen = _ssRead();
-  const key  = q.toLowerCase().trim().slice(0, 120);
+  const key  = SOURCE + ':' + q.toLowerCase().trim().slice(0, 120);
   seen[key]  = Date.now();
-  // Evict old entries
+  // Evict expired entries to keep sessionStorage lean
   const now = Date.now();
   for (const k in seen) { if (now - seen[k] > _SS_TTL) delete seen[k]; }
   _ssWrite(seen);
 }
 
 /* ── Prompt quality gate ─────────────────────────────────────── */
-// Rejects clearly non-user-prompt noise strings.
-// NOTE: The 600-char hard cap was REMOVED — real user prompts can be
-// arbitrarily long (code snippets, documents, long instructions).
+// Only blocks strings that are clearly AI responses / system noise,
+// NOT the user's own prompt text.
+//
+// IMPORTANT: the same user prompt searched on different platforms
+// (ChatGPT, Gemini, Claude) must ALL be saved because the "Combine"
+// feature depends on having all three versions to cross-summarise them.
+//
+// Rules:
+//   ✅ ALLOW  — any real user question/instruction, any length
+//   ✅ ALLOW  — same text sent to a different platform
+//   ❌ BLOCK  — strings that start with "you said", "as I mentioned", etc.
+//              (these are fragments of AI replies leaking through the
+//               Gemini f.req body parser)
+//   ❌ BLOCK  — strings shorter than 4 chars
+
 const NOISE_PREFIXES = [
-  'you said', 'as i mentioned', 'as i said', 'i mentioned',
-  'sure, here', 'sure! here', 'of course,', 'certainly,',
-  'here is a', 'here are', 'let me explain', 'great question',
-  'innovation is', 'the following', 'based on your',
-  'according to', 'in summary,', 'in conclusion,',
+  'you said',
+  'as i mentioned', 'as i said', 'i mentioned',
+  'sure, here', 'sure! here',
+  'of course,', 'certainly,',
+  'here is a ', 'here are ',          // space prevents blocking "here is my question"
+  'let me explain',
+  'great question',
+  'the following',
+  'in summary,', 'in conclusion,',
   'to summarize', 'to sum up',
 ];
 
 function isValidPrompt(q) {
   if (!q || q.length < 4) return false;
+  // NO length cap — user prompts can be long (code, documents, detailed instructions)
   const lower = q.toLowerCase().trimStart();
   for (const prefix of NOISE_PREFIXES) {
     if (lower.startsWith(prefix)) return false;
@@ -116,32 +137,29 @@ function saveQuery(query) {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   PRIMARY: Listen for postMessages from page-context.js
-   page-context.js runs in MAIN world and wraps fetch/XHR.
-   It postMessages the captured prompt here.
+   PRIMARY: postMessage from page-context.js
+   page-context.js runs in MAIN world and wraps window.fetch /
+   XMLHttpRequest at the page level (no CSP restriction).
+   It postMessages every captured prompt here.
 ══════════════════════════════════════════════════════════════ */
 window.addEventListener('message', (event) => {
   if (event.source !== window) return;
   if (!event.data || !event.data.__recallai) return;
   const prompt = (event.data.prompt || '').trim();
   if (prompt.length < 3) return;
-  console.log(`[Recall AI] 📨 postMessage received: "${prompt.substring(0, 80)}"`);
+  console.log(`[Recall AI] 📨 network capture: "${prompt.substring(0, 80)}"`);
   saveQuery(prompt);
 });
 
 /* ══════════════════════════════════════════════════════════════
-   BACKUP: DOM MutationObserver
-   Watches for user-turn message elements appearing in the DOM.
-   Acts as a safety net if the network interceptor misses a prompt
-   (e.g. WebSocket-based updates, streaming, or SPA navigation edge cases).
+   BACKUP A — DOM MutationObserver
+   Watches for rendered user-turn elements appearing in the DOM.
+   Safety net if the network interceptor misses a prompt.
 
-   NOTE: Previously this was DISABLED for ChatGPT/Claude/Gemini to
-   avoid duplicates. With page-context.js as the primary interceptor
-   (which fires before DOM updates), duplicates are handled by the
-   15-second dedup window in isDuplicateQuery — so we can safely
-   re-enable DOM backup for all platforms.
+   Dedup (15-second same-source window) prevents double-saves
+   when both the network capture AND the DOM backup fire for
+   the same submission.
 ══════════════════════════════════════════════════════════════ */
-
 const USER_TURN_SELECTORS = {
   ChatGPT:    '[data-message-author-role="user"] .whitespace-pre-wrap, [data-message-author-role="user"] p',
   Gemini:     'user-query p, user-query span, .query-text p, .query-text span, [data-role="user"] p, .user-prompt-container p',
@@ -149,7 +167,7 @@ const USER_TURN_SELECTORS = {
   Perplexity: '[data-testid="user-message"] p',
   Copilot:    'cib-message[source="user"] p',
   'Meta AI':  '[data-testid="user-message"] p',
-  Grok:       '[data-testid="user-message"] p'
+  Grok:       '[data-testid="user-message"] p',
 };
 
 function attachDOMObserver() {
@@ -157,8 +175,7 @@ function attachDOMObserver() {
   if (!sel) return;
 
   const knownTurns = new Set();
-
-  // Seed existing turns (conversation already on page before extension loaded)
+  // Seed with already-rendered turns so we don't re-capture history
   document.querySelectorAll(sel).forEach(el => knownTurns.add(el));
 
   const observer = new MutationObserver(() => {
@@ -167,22 +184,20 @@ function attachDOMObserver() {
       knownTurns.add(el);
       const text = (el.innerText || el.textContent || '').trim();
       if (text.length > 3) {
-        console.log(`[Recall AI] 🔍 DOM backup caught: "${text.substring(0, 60)}"`);
+        console.log(`[Recall AI] 🔍 DOM backup: "${text.substring(0, 60)}"`);
         saveQuery(text);
       }
     });
   });
 
   observer.observe(document.body, { childList: true, subtree: true });
-  console.log(`[Recall AI] 👁 DOM observer active for: ${sel}`);
+  console.log(`[Recall AI] 👁 DOM observer active (${SOURCE})`);
 }
 
 /* ══════════════════════════════════════════════════════════════
-   BACKUP: Keyboard Enter capture
-   Reads the input box text on Enter before the platform clears it.
-   Only active for platforms where DOM observer is less reliable.
+   BACKUP B — keyboard Enter + send-button capture
+   Reads the input box text at the moment the user submits.
 ══════════════════════════════════════════════════════════════ */
-
 const INPUT_SELECTORS = {
   ChatGPT:    '#prompt-textarea, div[contenteditable="true"].ProseMirror',
   Gemini:     'rich-textarea p[contenteditable="true"], rich-textarea div[contenteditable="true"], div[contenteditable="true"]',
@@ -190,7 +205,7 @@ const INPUT_SELECTORS = {
   Perplexity: 'textarea[placeholder*="Ask"], textarea',
   Copilot:    'textarea, div[contenteditable="true"][role="textbox"]',
   'Meta AI':  'div[contenteditable="true"][role="textbox"]',
-  Grok:       'textarea'
+  Grok:       'textarea',
 };
 
 const SEND_BTN_SELECTORS = {
@@ -200,7 +215,7 @@ const SEND_BTN_SELECTORS = {
   Perplexity: 'button[aria-label="Submit"], button[type="submit"]',
   Copilot:    'button[aria-label="Submit"], button[aria-label="Send"]',
   'Meta AI':  'button[aria-label="Send message"]',
-  Grok:       'button[aria-label="Send"]'
+  Grok:       'button[aria-label="Send"]',
 };
 
 let inputSnapshot = '';
@@ -208,10 +223,7 @@ let inputSnapshot = '';
 function findInputEl() {
   const sel = INPUT_SELECTORS[SOURCE] || '';
   for (const s of sel.split(',').map(x => x.trim())) {
-    try {
-      const el = document.querySelector(s);
-      if (el) return el;
-    } catch (e) {}
+    try { const el = document.querySelector(s); if (el) return el; } catch (_) {}
   }
   return null;
 }
@@ -220,7 +232,7 @@ function readInputText() {
   const el = findInputEl();
   if (!el) return inputSnapshot;
   const live = el.isContentEditable ? (el.innerText || '').trim() : (el.value || '').trim();
-  return (live.length > 2) ? live : inputSnapshot;
+  return live.length > 2 ? live : inputSnapshot;
 }
 
 function attachKeyboardCapture() {
@@ -233,7 +245,7 @@ function attachKeyboardCapture() {
     const text = el.isContentEditable ? (el.innerText || '').trim() : (el.value || '').trim();
     if (text.length > 2) {
       inputSnapshot = text;
-      // Delay slightly so network interceptor fires first (avoids duplicate)
+      // Delay so the network interceptor fires first; dedup handles the rest
       setTimeout(() => saveQuery(inputSnapshot), 300);
     }
   }, true);
@@ -246,19 +258,17 @@ function attachSendButtonCapture() {
   function tryAttach() {
     sel.split(',').map(s => s.trim()).forEach(s => {
       let btns;
-      try { btns = document.querySelectorAll(s); } catch (e) { return; }
+      try { btns = document.querySelectorAll(s); } catch (_) { return; }
       btns.forEach(btn => {
         if (btn.__recall_sb) return;
         btn.__recall_sb = true;
         btn.addEventListener('mousedown', () => {
-          const text = readInputText();
-          if (text.length > 2) inputSnapshot = text;
+          const t = readInputText();
+          if (t.length > 2) inputSnapshot = t;
         }, true);
         btn.addEventListener('click', () => {
-          const text = readInputText();
-          if (text.length > 2) {
-            setTimeout(() => saveQuery(text), 300);
-          }
+          const t = readInputText();
+          if (t.length > 2) setTimeout(() => saveQuery(t), 300);
         }, true);
       });
     });
@@ -270,20 +280,14 @@ function attachSendButtonCapture() {
 
 /* ── Ping handler ────────────────────────────────────────────── */
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg.type === 'RECALL_PING') {
-    sendResponse({ ok: true, source: SOURCE });
-  }
+  if (msg.type === 'RECALL_PING') sendResponse({ ok: true, source: SOURCE });
 });
 
 /* ── Init ────────────────────────────────────────────────────── */
 function init() {
   if (isInitialized) return;
   isInitialized = true;
-
   console.log(`[Recall AI] 🚀 content.js active on ${SOURCE} (${location.hostname})`);
-  console.log(`[Recall AI] ℹ️  Network interception handled by page-context.js (MAIN world)`);
-
-  // Backup strategies
   attachDOMObserver();
   attachKeyboardCapture();
   attachSendButtonCapture();
