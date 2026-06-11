@@ -46,15 +46,45 @@ let lastQuery     = '';
 let lastQueryTime = 0;
 let isInitialized = false;
 
+// Platforms where network interception is reliable enough to be the ONLY
+// capture strategy. DOM observer + keyboard backup are disabled for these
+// to prevent the same prompt being captured 2-3× per submission.
+const NETWORK_ONLY_PLATFORMS = new Set(['Claude', 'ChatGPT']);
+
+// sessionStorage-backed dedup: survives SPA navigation (URL changes)
+// so revisiting an old conversation never re-saves its messages.
+const _SS_KEY   = '__recall_seen__';
+const _SS_TTL   = 5 * 60 * 1000; // 5 minutes
+
+function _ssRead() {
+  try { return JSON.parse(sessionStorage.getItem(_SS_KEY) || '{}'); } catch { return {}; }
+}
+function _ssWrite(obj) {
+  try { sessionStorage.setItem(_SS_KEY, JSON.stringify(obj)); } catch {}
+}
+
 function isDuplicateQuery(q) {
   if (!q || q.length < 3) return true;
-  if (q === lastQuery && Date.now() - lastQueryTime < 30000) return true;
+  // Fast in-memory check (same-burst captures within 8 s)
+  if (q === lastQuery && Date.now() - lastQueryTime < 8000) return true;
+  // Cross-navigation check via sessionStorage
+  const seen = _ssRead();
+  const key  = q.toLowerCase().trim().slice(0, 120);
+  if (seen[key] && Date.now() - seen[key] < _SS_TTL) return true;
   return false;
 }
 
 function markQuery(q) {
   lastQuery     = q;
   lastQueryTime = Date.now();
+  // Persist so navigation-triggered re-inits don't re-save the same prompt
+  const seen = _ssRead();
+  const key  = q.toLowerCase().trim().slice(0, 120);
+  seen[key]  = Date.now();
+  // Evict entries older than TTL to keep storage small
+  const now  = Date.now();
+  for (const k in seen) { if (now - seen[k] > _SS_TTL) delete seen[k]; }
+  _ssWrite(seen);
 }
 
 /* ── Send to background ──────────────────────────────────────── */
@@ -100,9 +130,9 @@ function injectNetworkInterceptor() {
     if (url.includes('/api/generate')) return true;
     if (url.includes('bard.google.com')) return true;
     if (url.includes('gemini.google.com') && url.includes('StreamGenerate')) return true;
-    // Claude — match /completion, /messages, or any claude.ai/api path
+    // Claude
+    if (url.includes('/api/') && url.includes('/messages')) return true;
     if (url.includes('claude.ai/api')) return true;
-    if (url.includes('claude.ai') && url.includes('/api/')) return true;
     // Perplexity
     if (url.includes('perplexity.ai') && (url.includes('/socket') || url.includes('/search'))) return true;
     return false;
@@ -131,25 +161,10 @@ function injectNetworkInterceptor() {
       }
       
       // ── Claude ───────────────────────────────
-      if (url.includes('claude.ai')) {
+      if (url.includes('/messages') || url.includes('claude.ai')) {
         const parsed = JSON.parse(bodyText);
-
-        // /completion endpoint: top-level prompt string (current format)
-        if (parsed.prompt && typeof parsed.prompt === 'string' && parsed.prompt.length > 2) {
-          return parsed.prompt.trim();
-        }
-
-        // /completion endpoint: prompt as array of content blocks
-        if (Array.isArray(parsed.prompt)) {
-          const text = parsed.prompt
-            .filter(c => c.type === 'text')
-            .map(c => c.text)
-            .join(' ').trim();
-          if (text.length > 2) return text;
-        }
-
-        // messages array format (legacy /messages endpoint)
         const messages = parsed.messages || [];
+        // Take the last user message
         for (let i = messages.length - 1; i >= 0; i--) {
           const msg = messages[i];
           if (msg.role === 'user') {
@@ -164,6 +179,10 @@ function injectNetworkInterceptor() {
               if (text.length > 2) return text;
             }
           }
+        }
+        // Also check top-level prompt field
+        if (parsed.prompt && typeof parsed.prompt === 'string') {
+          return parsed.prompt.trim();
         }
       }
 
@@ -294,6 +313,11 @@ const USER_TURN_SELECTORS = {
 };
 
 function attachDOMObserver() {
+  // Claude and ChatGPT: network interception captures every prompt reliably.
+  // Running the DOM observer on top causes the same prompt to be saved twice
+  // (once from fetch intercept, once when the rendered message appears in DOM).
+  if (NETWORK_ONLY_PLATFORMS.has(SOURCE)) return;
+
   const sel = USER_TURN_SELECTORS[SOURCE];
   if (!sel) return;
 
@@ -306,9 +330,7 @@ function attachDOMObserver() {
     document.querySelectorAll(sel).forEach(el => {
       if (knownTurns.has(el)) return;
       knownTurns.add(el);
-      let text = (el.innerText || el.textContent || '').trim();
-      // Claude's DOM wraps user messages with "You said\n" — strip it
-      text = text.replace(/^You said[\s\S]{0,2}/i, '').trim();
+      const text = (el.innerText || el.textContent || '').trim();
       if (text.length > 3) {
         console.log(`[Recall AI] 🔍 DOM observer caught: "${text.substring(0,60)}"`);
         saveQuery(text);
@@ -368,6 +390,9 @@ function readInputText() {
 }
 
 function attachKeyboardCapture() {
+  // Not needed for Claude/ChatGPT — network interceptor is the single source.
+  if (NETWORK_ONLY_PLATFORMS.has(SOURCE)) return;
+
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter' || e.shiftKey) return;
     const el = document.activeElement;
@@ -384,6 +409,9 @@ function attachKeyboardCapture() {
 }
 
 function attachSendButtonCapture() {
+  // Not needed for Claude/ChatGPT — network interceptor is the single source.
+  if (NETWORK_ONLY_PLATFORMS.has(SOURCE)) return;
+
   const sel = SEND_BTN_SELECTORS[SOURCE] || '';
   if (!sel) return;
 
@@ -432,13 +460,21 @@ function init() {
   // PRIMARY: network interception (most reliable)
   injectNetworkInterceptor();
 
-  // BACKUP: DOM observer only (keyboard/button capture removed — they
-  // fire before the network interceptor and cause duplicates on all platforms)
+  // BACKUPS: DOM + keyboard (Gemini, Perplexity, etc. only — skipped for
+  // Claude & ChatGPT where network interception alone is sufficient)
   attachDOMObserver();
+  attachKeyboardCapture();
+  attachSendButtonCapture();
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
+  // Inject network interceptor as early as possible (before page scripts run).
+  // init() will NOT call it again because isInitialized guards duplicate calls,
+  // and the injected script itself has a window.__recallai_injected__ guard.
+  injectNetworkInterceptor();
+  document.addEventListener('DOMContentLoaded', () => {
+    init(); // isInitialized is still false here, so this runs normally
+  });
 } else {
   init();
 }
@@ -448,8 +484,15 @@ let lastUrl = location.href;
 new MutationObserver(() => {
   if (location.href !== lastUrl) {
     lastUrl       = location.href;
-    isInitialized = false;
     inputSnapshot = '';
+
+    // For network-only platforms (Claude, ChatGPT) the fetch interceptor is
+    // injected once into window and persists across conversation switches.
+    // Re-running init() would create a new DOM observer that re-captures old
+    // user messages already on the page — the direct cause of duplicate entries.
+    if (NETWORK_ONLY_PLATFORMS.has(SOURCE)) return;
+
+    isInitialized = false;
     setTimeout(init, 1200);
   }
 }).observe(document, { subtree: true, childList: true });
