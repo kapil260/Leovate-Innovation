@@ -371,6 +371,15 @@ async function saveNotifications() {
 }
 
 /* ─────────────────────────────────────────
+   FONT SIZE — apply live to <html>
+   Mirrors what theme.js does on page load.
+───────────────────────────────────────── */
+function applyFontSize(size) {
+  var valid = { small: true, medium: true, large: true };
+  document.documentElement.setAttribute('data-font-size', valid[size] ? size : 'medium');
+}
+
+/* ─────────────────────────────────────────
    SAVE APPEARANCE — BACKEND CONNECTED
    POST /api/user/settings
 ───────────────────────────────────────── */
@@ -379,6 +388,8 @@ async function saveAppearance() {
   const fontSize = document.getElementById('fontSizeSelect')?.value;
   const language = document.getElementById('languageSelect')?.value;
   btn.textContent = 'Saving…'; btn.disabled = true;
+  // Apply font size immediately so user sees the change
+  applyFontSize(fontSize);
   try {
     const patch = {
       theme: state.theme,
@@ -471,12 +482,22 @@ async function revokeSessions() {
    DELETE /api/searches/clear
 ───────────────────────────────────────── */
 async function clearHistory() {
-  if (!confirm('Are you sure you want to clear all search history? This cannot be undone.')) return;
+  // Use a styled confirm instead of the ugly browser default
+  const confirmed = await showConfirmDialog(
+    'Clear All History?',
+    'This will permanently delete ALL your saved searches, tags, and summaries from every platform. This cannot be undone.',
+    'Yes, Clear Everything',
+    'Cancel'
+  );
+  if (!confirmed) return;
+
   const btn = document.getElementById('clearHistoryBtn');
-  btn.textContent = 'Clearing…'; btn.disabled = true;
+  btn.textContent = 'Clearing…';
+  btn.disabled = true;
+
   try {
     const res = await fetch(API.clearHistory, {
-      method: 'DELETE',
+      method:  'DELETE',
       headers: await authHeaders()
     });
     const data = await res.json();
@@ -485,12 +506,70 @@ async function clearHistory() {
       showToast(data.error || 'Failed to clear history', 'error');
       return;
     }
-    showToast(data.message || 'Search history cleared');
-  } catch(err) {
-    showToast('Network error. Check your connection.', 'error');
+
+    showToast(data.message || 'All search history cleared!', 'success');
+
+  } catch (err) {
+    showToast('Network error — is the server running?', 'error');
   } finally {
-    btn.textContent = 'Clear History'; btn.disabled = false;
+    btn.textContent = 'Clear History';
+    btn.disabled = false;
   }
+}
+
+// ── Reusable confirm dialog (no ugly browser confirm()) ────────
+function showConfirmDialog(title, message, confirmText, cancelText) {
+  return new Promise((resolve) => {
+    // Remove any existing dialog
+    const existing = document.getElementById('recallConfirmDialog');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'recallConfirmDialog';
+    overlay.style.cssText = [
+      'position:fixed','inset:0','z-index:9999',
+      'background:rgba(0,0,0,0.65)','backdrop-filter:blur(4px)',
+      'display:flex','align-items:center','justify-content:center',
+    ].join(';');
+
+    overlay.innerHTML = `
+      <div style="background:var(--bg-card,#0a1628);border:1px solid var(--border,rgba(255,255,255,0.08));
+        border-radius:16px;padding:28px 32px;max-width:360px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+        <div style="font-size:17px;font-weight:700;color:var(--text-primary,#dee5ff);margin-bottom:10px;">
+          ${title}
+        </div>
+        <div style="font-size:13.5px;color:var(--text-muted,#94a3b8);line-height:1.6;margin-bottom:24px;">
+          ${message}
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button id="recallConfirmCancel"
+            style="padding:9px 18px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;
+              border:1px solid var(--border,rgba(255,255,255,0.1));
+              background:var(--bg-surface,#0f1e35);color:var(--text-muted,#94a3b8);">
+            ${cancelText}
+          </button>
+          <button id="recallConfirmOk"
+            style="padding:9px 18px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;
+              border:none;background:#ef4444;color:#ffffff;">
+            ${confirmText}
+          </button>
+        </div>
+      </div>`;
+
+    document.body.appendChild(overlay);
+
+    document.getElementById('recallConfirmOk').addEventListener('click', () => {
+      overlay.remove();
+      resolve(true);
+    });
+    document.getElementById('recallConfirmCancel').addEventListener('click', () => {
+      overlay.remove();
+      resolve(false);
+    });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) { overlay.remove(); resolve(false); }
+    });
+  });
 }
 
 /* ─────────────────────────────────────────
@@ -697,6 +776,7 @@ async function loadSettings() {
     if (k === 'font_size') {
       const sel = document.getElementById('fontSizeSelect');
       if (sel) sel.value = saved[k];
+      applyFontSize(saved[k]);
     }
     if (k === 'language') {
       const sel = document.getElementById('languageSelect');
@@ -731,6 +811,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('exportJsonBtn')?.addEventListener('click', () => exportData('json'));
   document.getElementById('exportCsvBtn')?.addEventListener('click', () => exportData('csv'));
   document.getElementById('deleteAccountBtn')?.addEventListener('click', deleteAccount);
+
+  // Live font-size preview on dropdown change
+  document.getElementById('fontSizeSelect')?.addEventListener('change', function () {
+    applyFontSize(this.value);
+  });
 
   // Load data
   loadProfile();
