@@ -5,7 +5,6 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script src="../setting-page/theme.js"></script>
   <link rel="stylesheet" href="subscription.css">
   <style>
     html, body {
@@ -13,12 +12,6 @@
       margin: 0;
       padding: 0;
       min-height: 100%;
-    }
-    [data-theme="light"] html,
-    [data-theme="light"] body,
-    html[data-theme="light"],
-    html[data-theme="light"] body {
-      background: #f0f4ff !important;
     }
     a, button, input, select, h1, h2, h3, h4, h5, * {
       box-sizing: border-box; margin: 0; padding: 0;
@@ -352,27 +345,26 @@
           </a>
         </div>
         <div class="link-active-state-subscription-css-transform">
-          <a class="link-active-state-subscription" href="../subscription-page/subscription.html">
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.86L12 17.77l-6.18 3.23L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-            </svg>
-            <div class="container2"><div class="text13">SUBSCRIPTION</div></div>
-          </a>
-        </div>
+  <a class="link-active-state-subscription" href="../subscription-page/subscription.html">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.86L12 17.77l-6.18 3.23L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+      </svg>
+      <div class="container2"><div class="text13">SUBSCRIPTION</div></div>
+  </a>
+</div>
+<div class="link-css-transform">
+  <a class="link2" href="../profile-page/profile.html">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+      </svg>
+        <div class="container2"><div class="text12">PROFILE</div></div>
+      
+  </a>
+</div>
       </nav>
     </div>
 
     <div class="container28"></div>
-
-    <!-- Neural Bandwidth -->
-    <div class="margin3">
-      <div class="background-border4">
-        <div class="container4"><div class="neural-bandwidth">Neural Bandwidth</div></div>
-        <div class="background6"><div class="gradient"></div></div>
-        <div class="container4"><div class="_6-5-tb-10-tb-remaining">6.5TB / 10TB REMAINING</div></div>
-      </div>
-    </div>
-
   </aside>
 
   <!-- Upgrade Confirmation Modal -->
@@ -407,5 +399,6 @@
 </div>
 
 <script src="subscription.js"></script>
+<script src="../i18n.js"></script>
 </body>
 </html>
