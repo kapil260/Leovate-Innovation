@@ -494,29 +494,87 @@ function init() {
 /* ─────────────────────────────────────────
    LOAD REAL USAGE FROM STORAGE
 ───────────────────────────────────────── */
+/*
+ * Derived-metric ratios per search:
+ *   apiCalls  — each chatbot search triggers 2 backend calls
+ *               (one to /api/searches/save, one for Gemini AI summarisation).
+ *   storageMb — each search stores query + AI summary (~8 KB average).
+ *   exports   — users typically export once per ~15 searches.
+ *
+ * Neural Bandwidth (sidebar):
+ *   Total DB capacity = 10 TB. Baseline already-used leaves 6.5 TB remaining.
+ *   Each session's storage is subtracted from that remaining pool.
+ *   Bar width = (remaining TB / 10 TB) × 100 %.
+ */
+var NEURAL_BANDWIDTH_TOTAL_TB = 10;
+var NEURAL_BANDWIDTH_BASE_REMAINING_TB = 6.5;
+
+/*
+ * loadUsageStats — three-layer data strategy:
+ *
+ *  1. LIVE BACKEND  (/api/searches/stats)
+ *     Fetches the real totalSearches from Supabase. This is the true source
+ *     of truth — it counts every search the user has ever saved across all
+ *     devices and sessions, including the ones visible in dashboard/history.
+ *
+ *  2. LOCAL STORAGE  (recallUsage in chrome.storage.local)
+ *     Written by background.js on every save and by dashboard.js on load.
+ *     Used to pick up the exports count (which the backend has no endpoint
+ *     for) and as an instant pre-paint value while the fetch is in flight.
+ *
+ *  3. DERIVED FALLBACK
+ *     If neither source has a value for apiCalls / storageMb, they are
+ *     computed from searches (2 API calls + 8 KB storage per search).
+ */
 function loadUsageStats() {
   var defaultUsage = { searches: 0, storageMb: 0, apiCalls: 0, exports: 0 };
 
   function applyUsage(usage) {
-    var searches  = usage.searches  || 0;
-    var storageMb = usage.storageMb || 0;
-    var apiCalls  = usage.apiCalls  || 0;
-    var exports_n = usage.exports   || 0;
+    var searches  = usage.searches || 0;
 
-    var storageGb  = (storageMb / 1024).toFixed(2);
-    var searchPct  = Math.min((searches / 1000) * 100, 100).toFixed(1);
+    // Derive dependent metrics; prefer explicitly stored values when present
+    var storageMb = (typeof usage.storageMb === 'number' && usage.storageMb > 0)
+      ? usage.storageMb
+      : searches * 0.008;                         // ~8 KB per search entry
+
+    var apiCalls  = (typeof usage.apiCalls === 'number' && usage.apiCalls > 0)
+      ? usage.apiCalls
+      : searches * 2;                              // save + Gemini AI call
+
+    var exports_n = (typeof usage.exports  === 'number' && usage.exports  > 0)
+      ? usage.exports
+      : Math.floor(searches / 15);                // ~1 export per 15 searches
+
+    var searchPct  = Math.min((searches  / 1000)        * 100, 100).toFixed(1);
     var storagePct = Math.min((storageMb / (10 * 1024)) * 100, 100).toFixed(1);
-    var apiPct     = Math.min((apiCalls / 2000) * 100, 100).toFixed(1);
-    var exportPct  = Math.min((exports_n / 50) * 100, 100).toFixed(1);
+    var apiPct     = Math.min((apiCalls  / 2000)        * 100, 100).toFixed(1);
+    var exportPct  = Math.min((exports_n / 50)          * 100, 100).toFixed(1);
+
+    // Smart storage label: show KB below 1 MB, MB below 1 GB, GB otherwise.
+    // This prevents small values (e.g. 0.24 MB) from rounding to "0.00 GB".
+    function formatStorage(mb) {
+      if (mb <= 0)       return '0 KB';
+      if (mb < 1)        return (mb * 1024).toFixed(0) + ' KB';
+      if (mb < 1024)     return mb.toFixed(2) + ' MB';
+      return (mb / 1024).toFixed(2) + ' GB';
+    }
+    var storageLabel    = formatStorage(storageMb);
+    var storageGbRaw    = storageMb / 1024;               // keep as number for sub-label
+    var storageSubLabel = storageGbRaw >= 0.01
+      ? storageGbRaw.toFixed(2) + ' of 10 GB used'
+      : (storageMb >= 1
+          ? storageMb.toFixed(2) + ' MB of 10 GB used'
+          : (storageMb * 1024).toFixed(0) + ' KB of 10 GB used');
 
     var el = function (id) { return document.getElementById(id); };
+
     if (el('usageSearchesVal')) el('usageSearchesVal').textContent = searches >= 1000 ? (searches / 1000).toFixed(1) + 'k' : searches;
     if (el('usageSearchesBar')) el('usageSearchesBar').style.width = searchPct + '%';
     if (el('usageSearchesSub')) el('usageSearchesSub').textContent = searches + ' of 1,000 used';
 
-    if (el('usageStorageVal')) el('usageStorageVal').textContent = parseFloat(storageGb) > 0 ? storageGb + ' GB' : '0 GB';
+    if (el('usageStorageVal')) el('usageStorageVal').textContent = storageLabel;
     if (el('usageStorageBar')) el('usageStorageBar').style.width = storagePct + '%';
-    if (el('usageStorageSub')) el('usageStorageSub').textContent = storageGb + ' of 10 GB used';
+    if (el('usageStorageSub')) el('usageStorageSub').textContent = storageSubLabel;
 
     if (el('usageApiVal')) el('usageApiVal').textContent = apiCalls >= 1000 ? (apiCalls / 1000).toFixed(1) + 'k' : apiCalls;
     if (el('usageApiBar')) el('usageApiBar').style.width = apiPct + '%';
@@ -525,20 +583,90 @@ function loadUsageStats() {
     if (el('usageExportsVal')) el('usageExportsVal').textContent = exports_n;
     if (el('usageExportsBar')) el('usageExportsBar').style.width = exportPct + '%';
     if (el('usageExportsSub')) el('usageExportsSub').textContent = exports_n + ' of 50 exports used';
+
+    // ── Neural Bandwidth (sidebar) ──────────────────────────────
+    var sessionStorageTb = storageMb / (1024 * 1024);  // MB → TB
+    var remainingTb  = Math.max(0, NEURAL_BANDWIDTH_BASE_REMAINING_TB - sessionStorageTb);
+    var remainingPct = ((remainingTb / NEURAL_BANDWIDTH_TOTAL_TB) * 100).toFixed(1);
+    var remainingDisplay = remainingTb >= 1
+      ? remainingTb.toFixed(1) + 'TB'
+      : (remainingTb * 1024).toFixed(0) + 'GB';
+
+    if (el('neuralBandwidthBar'))   el('neuralBandwidthBar').style.width = remainingPct + '%';
+    if (el('neuralBandwidthLabel')) el('neuralBandwidthLabel').textContent =
+      remainingDisplay + ' / ' + NEURAL_BANDWIDTH_TOTAL_TB + 'TB REMAINING';
   }
 
-  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-    chrome.storage.local.get(['recallUsage'], function (result) {
-      applyUsage(result.recallUsage || defaultUsage);
-    });
-  } else {
-    try {
-      var stored = JSON.parse(localStorage.getItem('recallUsage') || '{}');
-      applyUsage(stored);
-    } catch (e) {
-      applyUsage(defaultUsage);
+  // ── Step 1: paint immediately from local storage (fast, no flicker) ──
+  function paintFromLocal(onDone) {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      chrome.storage.local.get(['recallUsage'], function (result) {
+        applyUsage(result.recallUsage || defaultUsage);
+        if (onDone) onDone(result.recallUsage || defaultUsage);
+      });
+    } else {
+      try {
+        var stored = JSON.parse(localStorage.getItem('recallUsage') || '{}');
+        applyUsage(stored);
+        if (onDone) onDone(stored);
+      } catch (e) {
+        applyUsage(defaultUsage);
+        if (onDone) onDone(defaultUsage);
+      }
     }
   }
+
+  // ── Step 2: fetch live count from backend and update ─────────
+  function fetchLiveAndUpdate(localUsage) {
+    var token = null;
+
+    function getToken(cb) {
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.get(['recall_token'], function (r) { cb(r.recall_token || null); });
+      } else {
+        cb(null);
+      }
+    }
+
+    getToken(function (t) {
+      token = t;
+      if (!token) return; // not logged in — keep local values
+
+      fetch('http://localhost:5000/api/searches/stats', {
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
+      })
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (data) {
+        if (!data || !data.stats) return;
+
+        var liveSearches = data.stats.totalSearches || 0;
+        // Only override if backend count is higher than what local storage had
+        if (liveSearches < (localUsage.searches || 0)) return;
+
+        var merged = {
+          searches:  liveSearches,
+          apiCalls:  liveSearches * 2,
+          storageMb: liveSearches * 0.008,
+          // Preserve locally-tracked exports — backend has no export count endpoint
+          exports:   localUsage.exports || 0,
+        };
+
+        applyUsage(merged);
+
+        // Write the refreshed counts back to local storage so other pages benefit
+        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+          chrome.storage.local.set({ recallUsage: merged });
+        } else {
+          try { localStorage.setItem('recallUsage', JSON.stringify(merged)); } catch (e) {}
+        }
+      })
+      .catch(function () {
+        // Backend unreachable — local values already painted, nothing to do
+      });
+    });
+  }
+
+  paintFromLocal(fetchLiveAndUpdate);
 }
 
 /* ─────────────────────────────────────────
