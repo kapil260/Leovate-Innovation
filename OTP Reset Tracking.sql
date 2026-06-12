@@ -23,3 +23,4 @@ CREATE POLICY "service_only" ON public.otp_resets
   WITH CHECK (false);
 
 -- ✅ Done!
+
