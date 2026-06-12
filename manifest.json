@@ -33,9 +33,7 @@
         "https://grok.x.ai/*",
         "https://x.com/i/grok*"
       ],
-      "js": [
-        "page-context.js"
-      ],
+      "js": ["page-context.js"],
       "run_at": "document_start",
       "world": "MAIN"
     },
@@ -54,9 +52,7 @@
         "https://grok.x.ai/*",
         "https://x.com/i/grok*"
       ],
-      "js": [
-        "content.js"
-      ],
+      "js": ["content.js"],
       "run_at": "document_start"
     }
   ],
@@ -99,9 +95,7 @@
         "debug.html",
         "debug.js"
       ],
-      "matches": [
-        "<all_urls>"
-      ]
+      "matches": ["<all_urls>"]
     }
   ],
   "content_security_policy": {
