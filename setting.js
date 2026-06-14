@@ -3,7 +3,7 @@
 ───────────────────────────────────────── */
 'use strict';
 
-const BACKEND_URL = 'http://localhost:5000';
+const BACKEND_URL = 'https://leovate-innovation-3.onrender.com';
 const API = {
   me:             `${BACKEND_URL}/api/auth/me`,
   settings:       `${BACKEND_URL}/api/user/settings`,
