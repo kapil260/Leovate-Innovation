@@ -5,7 +5,7 @@
 
 'use strict';
 
-const BACKEND_URL = 'http://localhost:5000';
+const BACKEND_URL = 'https://leovate-innovation-3.onrender.com';
 const API = {
   sendOtp:   `${BACKEND_URL}/api/auth/signup-send-otp`,
   verifyOtp: `${BACKEND_URL}/api/auth/signup-verify`,
