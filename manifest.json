@@ -65,7 +65,7 @@
     "sidePanel"
   ],
   "host_permissions": [
-    "http://localhost:5000/*",
+    "https://leovate-innovation-3.onrender.com*",
     "https://chatgpt.com/*",
     "https://chat.openai.com/*",
     "https://gemini.google.com/*",
