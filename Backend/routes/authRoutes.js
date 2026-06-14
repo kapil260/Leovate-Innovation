@@ -1,8 +1,8 @@
 // ============================================================
-// routes/authRoutes.js
+// routes/authRoutes.js  (v3.1 — fixed)
 //
 // POST /api/auth/signup-send-otp   — Validate + create unverified account + send OTP
-// POST /api/auth/signup-verify     — Verify OTP → mark email_verified = true
+// POST /api/auth/signup-verify     — Verify OTP → mark email_verified = true + issue JWT
 // POST /api/auth/signup-resend-otp — Resend OTP to a pending account
 // POST /api/auth/login             — Login (blocks unverified accounts)
 // GET  /api/auth/me                — Get current user profile
@@ -18,20 +18,34 @@ const supabase   = require("../supabaseClient");
 const protect    = require("../middleware/authMiddleware");
 require("dotenv").config();
 
-// ── Email regex (strict) ──────────────────────────────────────
+// ── Email regex ───────────────────────────────────────────────
 const EMAIL_RE = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
 
-// ── EMAIL TRANSPORTER ─────────────────────────────────────────
+// ── EMAIL TRANSPORTER (matches userRoutes.js — strips spaces from app password) ──
 function createTransporter() {
+  // Google App Passwords are shown with spaces (xxxx xxxx xxxx xxxx)
+  // Strip spaces so nodemailer can authenticate correctly
+  const appPass = (process.env.GMAIL_APP_PASSWORD || "").replace(/\s/g, "");
   return nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
+    host:   "smtp.gmail.com",
+    port:   587,
     secure: false,
     auth: {
       user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
+      pass: appPass,
     },
+    tls: { rejectUnauthorized: false },
   });
+}
+
+// ── JWT helper (safe — logs clear error if JWT_SECRET missing) ──
+function signToken(payload) {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    console.error("[Recall AI] ❌ JWT_SECRET is not set! Add it in Render → Environment.");
+    throw new Error("JWT_SECRET_MISSING");
+  }
+  return jwt.sign(payload, secret, { expiresIn: "7d" });
 }
 
 // ── SEND SIGNUP OTP EMAIL ─────────────────────────────────────
@@ -99,9 +113,8 @@ async function sendSignupOtpEmail(toEmail, otp, username) {
   });
 }
 
-// ── Helper: save/replace OTP record (avoids upsert constraint issues) ──
+// ── Helper: save/replace OTP record ──────────────────────────
 async function saveOtpRecord(userId, hashedOtp, expiresAt) {
-  // Delete any existing OTP for this user first, then insert fresh
   await supabase.from("otp_resets").delete().eq("user_id", userId);
   const { error } = await supabase.from("otp_resets").insert({
     user_id:    userId,
@@ -113,35 +126,27 @@ async function saveOtpRecord(userId, hashedOtp, expiresAt) {
   return error;
 }
 
+
 // ── SIGNUP STEP 1: Validate → create/update account → send OTP ─
 // POST /api/auth/signup-send-otp
-// Body: { name, email, password }
-
 router.post("/signup-send-otp", async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // ── Validate fields ───────────────────────────────────────
-    if (!name || !name.trim()) {
+    if (!name || !name.trim())
       return res.status(400).json({ error: "Please enter your full name." });
-    }
-    if (!email || !email.trim()) {
+    if (!email || !email.trim())
       return res.status(400).json({ error: "Email address is required." });
-    }
-    if (!EMAIL_RE.test(email.trim())) {
+    if (!EMAIL_RE.test(email.trim()))
       return res.status(400).json({ error: "Please enter a valid email address (e.g. you@example.com)." });
-    }
-    if (!password) {
+    if (!password)
       return res.status(400).json({ error: "Password is required." });
-    }
-    if (password.length < 8) {
+    if (password.length < 8)
       return res.status(400).json({ error: "Password must be at least 8 characters long." });
-    }
 
     const normalEmail = email.toLowerCase().trim();
     const cleanName   = name.trim();
 
-    // ── Check if a VERIFIED account already exists ────────────
     const { data: existing } = await supabase
       .from("profiles")
       .select("id, email_verified")
@@ -154,12 +159,10 @@ router.post("/signup-send-otp", async (req, res) => {
       });
     }
 
-    // ── Hash password ─────────────────────────────────────────
     const hashedPassword = await bcrypt.hash(password, 10);
     let userId;
 
     if (existing && !existing.email_verified) {
-      // Previous unverified attempt — update details and re-send
       const { error: updateErr } = await supabase
         .from("profiles")
         .update({ username: cleanName, password: hashedPassword })
@@ -170,7 +173,6 @@ router.post("/signup-send-otp", async (req, res) => {
       }
       userId = existing.id;
     } else {
-      // Brand new account — insert as unverified
       const { data: newUser, error: insertError } = await supabase
         .from("profiles")
         .insert({
@@ -189,27 +191,23 @@ router.post("/signup-send-otp", async (req, res) => {
       userId = newUser.id;
     }
 
-    // ── Generate 6-digit OTP ──────────────────────────────────
-    const otp        = String(Math.floor(100000 + Math.random() * 900000));
-    const otpExpiry  = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-    const hashedOtp  = crypto.createHash("sha256").update(otp).digest("hex");
+    const otp       = String(Math.floor(100000 + Math.random() * 900000));
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
 
-    // ── Save OTP (delete-then-insert to avoid constraint errors) ─
     const otpError = await saveOtpRecord(userId, hashedOtp, otpExpiry);
     if (otpError) {
       console.error("OTP save error:", otpError.message);
       return res.status(500).json({ error: "Could not send verification code. Please try again." });
     }
 
-    // ── Send OTP email ─────────────────────────────────────────
     try {
       await sendSignupOtpEmail(normalEmail, otp, cleanName);
     } catch (emailErr) {
       console.error("Email send error:", emailErr.message);
-      // Clean up the OTP record so user can retry
       await supabase.from("otp_resets").delete().eq("user_id", userId);
       return res.status(500).json({
-        error: "Could not send verification email. Check your Gmail credentials in .env and try again.",
+        error: "Could not send verification email. Check GMAIL_USER and GMAIL_APP_PASSWORD in Render environment.",
       });
     }
 
@@ -226,21 +224,17 @@ router.post("/signup-send-otp", async (req, res) => {
 });
 
 
-// ── SIGNUP STEP 2: Verify OTP → activate account ─────────────
+// ── SIGNUP STEP 2: Verify OTP → activate account + issue JWT ─
 // POST /api/auth/signup-verify
-// Body: { email, otp }
-
 router.post("/signup-verify", async (req, res) => {
   try {
     const { email, otp } = req.body;
 
-    if (!email || !otp) {
+    if (!email || !otp)
       return res.status(400).json({ error: "Email and verification code are required." });
-    }
 
     const normalEmail = email.toLowerCase().trim();
 
-    // ── Find the unverified user ──────────────────────────────
     const { data: user } = await supabase
       .from("profiles")
       .select("id, username, email")
@@ -254,7 +248,6 @@ router.post("/signup-verify", async (req, res) => {
       });
     }
 
-    // ── Find the OTP record ───────────────────────────────────
     const { data: otpRecord } = await supabase
       .from("otp_resets")
       .select("*")
@@ -268,21 +261,18 @@ router.post("/signup-verify", async (req, res) => {
       });
     }
 
-    // ── Check expiry ──────────────────────────────────────────
     if (new Date() > new Date(otpRecord.expires_at)) {
       return res.status(400).json({
         error: "This code has expired. Please click 'Resend code' to get a new one.",
       });
     }
 
-    // ── Check attempt limit ───────────────────────────────────
     if ((otpRecord.attempts || 0) >= 5) {
       return res.status(400).json({
         error: "Too many incorrect attempts. Please request a new code.",
       });
     }
 
-    // ── Verify OTP ────────────────────────────────────────────
     const hashedInput = crypto.createHash("sha256").update(otp.trim()).digest("hex");
     if (hashedInput !== otpRecord.otp_hash) {
       const newAttempts = (otpRecord.attempts || 0) + 1;
@@ -298,22 +288,22 @@ router.post("/signup-verify", async (req, res) => {
       });
     }
 
-    // ── OTP correct — activate the account ───────────────────
-    await supabase
-      .from("profiles")
-      .update({ email_verified: true })
-      .eq("id", user.id);
-    await supabase
-      .from("otp_resets")
-      .delete()
-      .eq("user_id", user.id);
+    // OTP correct — activate the account
+    await supabase.from("profiles").update({ email_verified: true }).eq("id", user.id);
+    await supabase.from("otp_resets").delete().eq("user_id", user.id);
 
-    // ── Issue JWT ─────────────────────────────────────────────
-    const token = jwt.sign(
-      { id: user.id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    // Issue JWT — safe helper catches missing JWT_SECRET
+    let token;
+    try {
+      token = signToken({ id: user.id, email: user.email });
+    } catch (jwtErr) {
+      if (jwtErr.message === "JWT_SECRET_MISSING") {
+        return res.status(500).json({
+          error: "Server configuration error: JWT_SECRET is not set. Please ask the admin to add it in Render → Environment.",
+        });
+      }
+      throw jwtErr;
+    }
 
     console.log(`[Recall AI] ✅ Email verified + account activated: ${normalEmail}`);
     return res.status(201).json({
@@ -331,8 +321,6 @@ router.post("/signup-verify", async (req, res) => {
 
 // ── RESEND OTP ────────────────────────────────────────────────
 // POST /api/auth/signup-resend-otp
-// Body: { email }
-
 router.post("/signup-resend-otp", async (req, res) => {
   try {
     const { email } = req.body;
@@ -382,31 +370,31 @@ router.post("/signup-resend-otp", async (req, res) => {
 
 // ── LOGIN ─────────────────────────────────────────────────────
 // POST /api/auth/login
-// Body: { email, password }
-
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    if (!email || !password)
       return res.status(400).json({ error: "Please provide your email and password." });
-    }
 
-    if (!EMAIL_RE.test(email.trim())) {
+    if (!EMAIL_RE.test(email.trim()))
       return res.status(400).json({ error: "Please enter a valid email address." });
-    }
 
     const { data: user, error: findError } = await supabase
       .from("profiles")
-      .select("*")
+      .select("id, email, username, password, email_verified")
       .eq("email", email.toLowerCase().trim())
       .maybeSingle();
 
-    if (findError || !user) {
+    if (findError) {
+      console.error("Login DB error:", findError.message);
+      return res.status(500).json({ error: "Database error. Please try again." });
+    }
+
+    if (!user) {
       return res.status(401).json({ error: "No account found with this email address." });
     }
 
-    // Block login until email is verified
     if (!user.email_verified) {
       return res.status(401).json({
         error: "Please verify your email before logging in. Check your inbox for the verification code.",
@@ -420,12 +408,20 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Incorrect password. Please try again." });
     }
 
-    const token = jwt.sign(
-      { id: user.id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    // Issue JWT — safe helper catches missing JWT_SECRET
+    let token;
+    try {
+      token = signToken({ id: user.id, email: user.email });
+    } catch (jwtErr) {
+      if (jwtErr.message === "JWT_SECRET_MISSING") {
+        return res.status(500).json({
+          error: "Server configuration error: JWT_SECRET is not set. Please ask the admin to add it in Render → Environment.",
+        });
+      }
+      throw jwtErr;
+    }
 
+    console.log(`[Recall AI] ✅ Login: ${user.email}`);
     return res.status(200).json({
       message: "Logged in successfully!",
       token,
@@ -441,36 +437,44 @@ router.post("/login", async (req, res) => {
 
 // ── GET CURRENT USER ──────────────────────────────────────────
 // GET /api/auth/me  (protected)
-
 router.get("/me", protect, async (req, res) => {
   try {
+    // Select only base columns that always exist
     const { data: user, error } = await supabase
       .from("profiles")
-      .select(
-        "id, username, email, phone, bio, location, display_name, " +
-        "timezone, language, github, twitter, linkedin, website, avatar_url, created_at"
-      )
+      .select("id, username, email, created_at")
       .eq("id", req.user.id)
       .single();
 
     if (error || !user) return res.status(404).json({ error: "User not found." });
+
+    // Try to get extended profile columns — these are added by migration
+    // If they don't exist yet, we gracefully default to empty strings
+    const { data: ext } = await supabase
+      .from("profiles")
+      .select(
+        "phone, bio, location, display_name, timezone, language, " +
+        "github, twitter, linkedin, website, avatar_url"
+      )
+      .eq("id", req.user.id)
+      .maybeSingle();
 
     return res.status(200).json({
       user: {
         id:          user.id,
         name:        user.username,
         email:       user.email,
-        phone:       user.phone        || "",
-        bio:         user.bio          || "",
-        location:    user.location     || "",
-        displayName: user.display_name || "",
-        timezone:    user.timezone     || "asia/kathmandu",
-        language:    user.language     || "en",
-        github:      user.github       || "",
-        twitter:     user.twitter      || "",
-        linkedin:    user.linkedin     || "",
-        website:     user.website      || "",
-        avatarUrl:   user.avatar_url   || "",
+        phone:       ext?.phone        || "",
+        bio:         ext?.bio          || "",
+        location:    ext?.location     || "",
+        displayName: ext?.display_name || "",
+        timezone:    ext?.timezone     || "asia/kathmandu",
+        language:    ext?.language     || "en",
+        github:      ext?.github       || "",
+        twitter:     ext?.twitter      || "",
+        linkedin:    ext?.linkedin     || "",
+        website:     ext?.website      || "",
+        avatarUrl:   ext?.avatar_url   || "",
         createdAt:   user.created_at,
       },
     });
