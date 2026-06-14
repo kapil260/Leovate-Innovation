@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Recall AI — Debug</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: monospace; background: #0f0f0f; color: #e2e8f0; padding: 20px; font-size: 13px; }
+    h1 { color: #a78bfa; margin-bottom: 16px; font-size: 16px; }
+    h2 { color: #94a3b8; font-size: 13px; margin: 20px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 6px; }
+    .label { color: #64748b; min-width: 200px; flex-shrink: 0; }
+    .val  { color: #e2e8f0; word-break: break-all; }
+    .ok   { color: #10b981; font-weight: bold; }
+    .fail { color: #ef4444; font-weight: bold; }
+    .warn { color: #f59e0b; font-weight: bold; }
+    .card { background: #1e1e2e; border: 1px solid #2d2d3d; border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+    button { background: #6366f1; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; margin: 4px 4px 4px 0; }
+    button:hover { background: #4f46e5; }
+    #log { background: #0a0a0a; border: 1px solid #222; border-radius: 6px; padding: 12px; margin-top: 8px; font-size: 12px; line-height: 1.6; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+    .sep { border: none; border-top: 1px solid #2d2d3d; margin: 16px 0; }
+  </style>
+</head>
+<body>
+<h1>🔍 Recall AI — Diagnostic Tool</h1>
+
+<div class="card">
+  <h2>1. Auth Token</h2>
+  <div id="authSection">Checking...</div>
+</div>
+
+<div class="card">
+  <h2>2. Backend Health (localhost:5000)</h2>
+  <div id="backendSection">Checking...</div>
+</div>
+
+<div class="card">
+  <h2>3. Saved Searches in DB</h2>
+  <div id="searchesSection">Checking...</div>
+</div>
+
+<div class="card">
+  <h2>4. Offline Queue</h2>
+  <div id="queueSection">Checking...</div>
+</div>
+
+<div class="card">
+  <h2>5. Manual Test — Save a Prompt</h2>
+  <button id="testSave">💾 Save test prompt now</button>
+  <button id="flushQueue">🔄 Flush offline queue</button>
+  <div id="log"></div>
+</div>
+
+<div class="card">
+  <h2>6. Actions</h2>
+  <button id="clearToken">🚪 Clear token (force logout)</button>
+  <button id="clearQueue">🗑 Clear offline queue</button>
+  <button id="recheck">🔁 Re-run all checks</button>
+</div>
+
+<script src="debug.js"></script>
+</body>
+</html>
