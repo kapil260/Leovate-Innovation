@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset Security Key — Recall AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box; margin: 0; padding: 0;
+      border: none; background: none; text-decoration: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    :root {
+      --bg:       #060e20;
+      --surface:  #0b1628;
+      --card:     #0d1b35;
+      --border:   rgba(159,167,255,0.12);
+      --border2:  rgba(159,167,255,0.22);
+      --accent:   #9fa7ff;
+      --accent2:  #be83fa;
+      --text:     #e8eaff;
+      --muted:    #6b7db3;
+      --error:    #ff6b6b;
+      --success:  #4ade80;
+      --warn:     #f59e0b;
+    }
+
+    html, body {
+      width: 100%; min-height: 100vh;
+      font-family: 'Space Grotesk', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    /* ── AMBIENT BACKGROUND ─── */
+    .bg-layer { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+    .bg-orb1 {
+      position: absolute; width: 600px; height: 500px;
+      left: -150px; top: -120px;
+      background: radial-gradient(circle, rgba(159,167,255,0.07) 0%, transparent 65%);
+      filter: blur(40px);
+    }
+    .bg-orb2 {
+      position: absolute; width: 500px; height: 400px;
+      right: -120px; bottom: -100px;
+      background: radial-gradient(circle, rgba(190,131,250,0.07) 0%, transparent 65%);
+      filter: blur(40px);
+    }
+    .bg-grid {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(159,167,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(159,167,255,0.025) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    .bg-watermark {
+      position: absolute; right: 32px; top: 24px;
+      font-size: 180px; font-weight: 700; line-height: 1;
+      color: rgba(109,117,140,0.04);
+      user-select: none; pointer-events: none;
+    }
+
+    /* ── LAYOUT ─── */
+    .page {
+      position: relative; z-index: 1;
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .card-wrap {
+      width: 100%; max-width: 440px;
+      display: flex; flex-direction: column; align-items: center;
+      animation: fadeUp 0.5s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── LOGO ─── */
+    .logo-block { display: flex; align-items: center; gap: 12px; margin-bottom: 36px; }
+    .logo-img {
+      width: 40px; height: 40px; border-radius: 12px;
+      object-fit: contain;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; color: #060e20; font-weight: 700;
+    }
+    .logo-img img { width: 40px; height: 40px; border-radius: 12px; display: block; object-fit: contain; }
+    .logo-name {
+      font-size: 22px; font-weight: 700; letter-spacing: -0.3px;
+      background: linear-gradient(90deg, var(--accent) 0%, var(--accent2) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    /* ── CARD ─── */
+    .card {
+      width: 100%;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px 36px 32px;
+      position: relative; overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.4), 0 0 0 1px rgba(159,167,255,0.05) inset;
+    }
+    .card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(159,167,255,0.3), transparent);
+    }
+    .card-glow {
+      position: absolute; top: -80px; left: 50%; transform: translateX(-50%);
+      width: 280px; height: 160px;
+      background: radial-gradient(ellipse, rgba(159,167,255,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── PROGRESS ─── */
+    .progress-wrap {
+      display: flex; align-items: center; justify-content: center;
+      gap: 6px; margin-bottom: 28px;
+    }
+    .p-dot {
+      width: 8px; height: 8px; border-radius: 999px;
+      background: rgba(159,167,255,0.15);
+      transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .p-dot.active  { width: 28px; background: var(--accent); }
+    .p-dot.done    { background: var(--success); }
+    .p-line {
+      width: 28px; height: 2px; border-radius: 1px;
+      background: rgba(159,167,255,0.1);
+      transition: background 0.4s ease;
+    }
+    .p-line.done { background: var(--success); }
+
+    /* ── STEPS ─── */
+    .step { display: none; }
+    .step.active { display: block; animation: stepIn 0.35s ease both; }
+    @keyframes stepIn {
+      from { opacity: 0; transform: translateX(16px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .step-header { text-align: center; margin-bottom: 28px; }
+    .step-icon-wrap {
+      width: 64px; height: 64px; border-radius: 18px; margin: 0 auto 16px;
+      background: linear-gradient(135deg, rgba(159,167,255,0.1), rgba(190,131,250,0.1));
+      border: 1px solid var(--border2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px;
+    }
+    .step-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.2px; }
+    .step-sub { font-size: 13px; color: var(--muted); line-height: 1.65; }
+
+    /* ── FIELDS ─── */
+    .field { margin-bottom: 16px; }
+    .field-label {
+      display: block; font-size: 10px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--muted); margin-bottom: 7px;
+    }
+    .input-wrap { position: relative; }
+    input[type="email"],
+    input[type="password"],
+    input[type="text"] {
+      width: 100%;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 13px 16px;
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+    input:focus {
+      border-color: var(--accent);
+      background: rgba(159,167,255,0.04);
+      box-shadow: 0 0 0 3px rgba(159,167,255,0.1);
+    }
+    input.err { border-color: var(--error); }
+    input.err:focus { box-shadow: 0 0 0 3px rgba(255,107,107,0.12); }
+    .pw-eye {
+      position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
+      color: var(--muted); cursor: pointer; display: flex;
+      transition: color 0.2s;
+    }
+    .pw-eye:hover { color: var(--accent); }
+    input[type="password"] { padding-right: 44px; }
+
+    .err-msg {
+      font-size: 11.5px; color: var(--error); margin-top: 5px;
+      display: none; align-items: center; gap: 4px;
+    }
+    .err-msg.show { display: flex; }
+
+    /* ── STRENGTH BAR ─── */
+    .strength-track {
+      height: 3px; border-radius: 2px;
+      background: rgba(255,255,255,0.06);
+      margin-top: 8px; overflow: hidden;
+    }
+    .strength-fill {
+      height: 100%; border-radius: 2px;
+      width: 0%; transition: width 0.35s ease, background 0.35s ease;
+    }
+    .strength-row {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 4px;
+    }
+    .strength-label { font-size: 11px; color: var(--muted); }
+
+    /* ── OTP ─── */
+    .otp-row { display: flex; gap: 10px; justify-content: center; margin-bottom: 6px; }
+    .otp-box {
+      flex: 1; max-width: 52px; height: 60px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 22px; font-weight: 700;
+      text-align: center; outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s, transform 0.15s;
+      caret-color: var(--accent);
+    }
+    .otp-box:focus {
+      border-color: var(--accent);
+      background: rgba(159,167,255,0.05);
+      box-shadow: 0 0 0 3px rgba(159,167,255,0.1);
+      transform: scale(1.04);
+    }
+    .otp-box.filled { border-color: rgba(159,167,255,0.35); }
+    .otp-box.err    { border-color: var(--error); animation: shake 0.4s ease; }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%,60% { transform: translateX(-4px); }
+      40%,80% { transform: translateX(4px); }
+    }
+
+    .email-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(159,167,255,0.07);
+      border: 1px solid rgba(159,167,255,0.18);
+      border-radius: 999px; padding: 5px 14px;
+      font-size: 13px; color: var(--accent); font-weight: 500;
+      margin-bottom: 22px;
+      max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    .resend-row { text-align: center; font-size: 13px; color: var(--muted); margin: 14px 0 4px; }
+    #resendBtn {
+      color: var(--accent); cursor: pointer; font-weight: 600;
+      background: none; border: none; font-family: inherit; font-size: 13px;
+      display: none;
+    }
+    #resendBtn:hover { text-decoration: underline; }
+
+    /* ── BUTTON ─── */
+    .btn {
+      width: 100%;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      color: #060e20;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700; font-size: 14px;
+      padding: 14px; border-radius: 12px;
+      cursor: pointer; margin-top: 20px;
+      position: relative; overflow: hidden;
+      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 8px 24px rgba(159,167,255,0.2);
+      letter-spacing: 0.02em;
+    }
+    .btn::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .btn:hover:not(:disabled) { opacity: 0.93; transform: translateY(-1px); box-shadow: 0 12px 32px rgba(159,167,255,0.28); }
+    .btn:hover::after { opacity: 1; }
+    .btn:active:not(:disabled) { transform: translateY(0); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn.loading { color: transparent; }
+    .btn.loading::before {
+      content: '';
+      position: absolute; left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      width: 18px; height: 18px;
+      border: 2.5px solid rgba(6,14,32,0.3);
+      border-top-color: #060e20;
+      border-radius: 50%;
+      animation: spin 0.65s linear infinite;
+    }
+    @keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
+
+    /* ── DIVIDER ─── */
+    .divider { display: flex; align-items: center; gap: 12px; margin: 20px 0 0; }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .divider-text { font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+    /* ── BACK LINK ─── */
+    .back-row { text-align: center; font-size: 13px; color: var(--muted); margin-top: 16px; }
+    .back-row a, .back-row span { color: var(--accent); cursor: pointer; font-weight: 600; }
+    .back-row a:hover, .back-row span:hover { text-decoration: underline; }
+
+    /* ── SUCCESS CARD ─── */
+    .success-box {
+      background: rgba(74,222,128,0.05);
+      border: 1px solid rgba(74,222,128,0.18);
+      border-radius: 14px; padding: 20px;
+      text-align: center; margin-bottom: 4px;
+    }
+    .success-box p { font-size: 13px; color: rgba(232,234,255,0.75); line-height: 1.65; }
+    .success-box strong { color: var(--success); }
+
+    /* ── TOAST ─── */
+    .toast {
+      position: fixed; bottom: 20px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #111d36; border: 1px solid var(--border2);
+      border-radius: 12px; padding: 11px 18px;
+      font-size: 13px; font-weight: 500;
+      display: flex; align-items: center; gap: 8px;
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      white-space: nowrap; z-index: 999;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .t-ok  { color: var(--success); }
+    .t-err { color: var(--error); }
+    .t-info { color: var(--accent); }
+
+    .info-note {
+      font-size: 12px; color: var(--muted);
+      background: rgba(159,167,255,0.04);
+      border: 1px solid rgba(159,167,255,0.1);
+      border-radius: 10px; padding: 10px 14px;
+      line-height: 1.6; margin-top: 16px;
+      text-align: center;
+    }
+    .info-note strong { color: var(--accent); }
+
+    /* ── REQUIREMENTS LIST ─── */
+    .req-list { margin-top: 10px; display: flex; flex-direction: column; gap: 5px; }
+    .req-item {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 11.5px; color: var(--muted);
+      transition: color 0.2s;
+    }
+    .req-item.met { color: var(--success); }
+    .req-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: rgba(159,167,255,0.2);
+      flex-shrink: 0; transition: background 0.2s;
+    }
+    .req-item.met .req-dot { background: var(--success); }
+  </style>
+</head>
+<body>
+
+  <div class="bg-layer">
+    <div class="bg-orb1"></div>
+    <div class="bg-orb2"></div>
+    <div class="bg-grid"></div>
+    <div class="bg-watermark">RA</div>
+  </div>
+
+  <div class="page">
+    <div class="card-wrap">
+
+      <div class="logo-block">
+        <div class="logo-img">
+          <img src="../icons/icon128.png" alt="Recall AI" onerror="this.parentElement.textContent='⚡'">
+        </div>
+        <span class="logo-name">Recall AI</span>
+      </div>
+
+      <div class="card">
+        <div class="card-glow"></div>
+
+        <!-- Progress dots -->
+        <div class="progress-wrap" id="progressWrap">
+          <div class="p-dot active" id="pd1"></div>
+          <div class="p-line"       id="pl1"></div>
+          <div class="p-dot"        id="pd2"></div>
+          <div class="p-line"       id="pl2"></div>
+          <div class="p-dot"        id="pd3"></div>
+        </div>
+
+        <!-- ── STEP 1: Email ── -->
+        <div class="step active" id="step1">
+          <div class="step-header">
+            <div class="step-icon-wrap">🔐</div>
+            <div class="step-title">Forgot Password?</div>
+            <div class="step-sub">Enter your registered email and we'll send you a 6-digit verification code.</div>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Email Address</label>
+            <input type="email" id="emailInput" placeholder="you@gmail.com" autocomplete="email">
+            <div class="err-msg" id="emailErr"><span>⚠</span><span id="emailErrTxt"></span></div>
+          </div>
+
+          <button class="btn" id="sendBtn">Send Verification Code</button>
+
+          <div class="divider"><span class="divider-text">or</span></div>
+          <div class="back-row">Remember your key? <span id="goLogin">Sign in</span></div>
+        </div>
+
+        <!-- ── STEP 2: OTP ── -->
+        <div class="step" id="step2">
+          <div class="step-header">
+            <div class="step-icon-wrap">📬</div>
+            <div class="step-title">Check Your Email</div>
+            <div class="step-sub">We sent a 6-digit code to</div>
+          </div>
+
+          <div style="text-align:center">
+            <div class="email-pill">✉️ <span id="sentToEmail"></span></div>
+          </div>
+
+          <div class="otp-row" id="otpRow">
+            <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="o0">
+            <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="o1">
+            <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="o2">
+            <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="o3">
+            <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="o4">
+            <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="o5">
+          </div>
+
+          <div class="err-msg" id="otpErr" style="justify-content:center">
+            <span>⚠</span><span id="otpErrTxt"></span>
+          </div>
+
+          <div class="resend-row">
+            <span id="countdownTxt">Resend code in <strong id="countNum">60</strong>s</span>
+            <button id="resendBtn">Resend Code</button>
+          </div>
+
+          <button class="btn" id="verifyBtn">Verify Code</button>
+
+          <div class="info-note">
+            Can't find the email? Check your <strong>spam or junk folder</strong>.
+          </div>
+
+          <div class="back-row" style="margin-top:14px"><span id="backToEmail">← Use a different email</span></div>
+        </div>
+
+        <!-- ── STEP 3: New Security Key ── -->
+        <div class="step" id="step3">
+          <div class="step-header">
+            <div class="step-icon-wrap">🔑</div>
+            <div class="step-title">Create New Password</div>
+            <div class="step-sub">Choose a strong Password — minimum 8 characters.</div>
+          </div>
+
+          <div class="field">
+            <label class="field-label">New Password</label>
+            <div class="input-wrap">
+              <input type="password" id="newPass" placeholder="Minimum 8 characters" autocomplete="new-password">
+              <span class="pw-eye" id="eye1">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </span>
+            </div>
+            <div class="strength-track"><div class="strength-fill" id="sBar"></div></div>
+            <div class="strength-row">
+              <div class="strength-label" id="sLabel"></div>
+              <div class="strength-label" id="sHint" style="color:var(--muted);opacity:0.6"></div>
+            </div>
+            <!-- Live requirements checklist -->
+            <div class="req-list">
+              <div class="req-item" id="req-len"><div class="req-dot"></div>At least 8 characters</div>
+              <div class="req-item" id="req-upper"><div class="req-dot"></div>One uppercase letter</div>
+              <div class="req-item" id="req-num"><div class="req-dot"></div>One number</div>
+            </div>
+            <div class="err-msg" id="newPassErr"><span>⚠</span><span id="newPassErrTxt"></span></div>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Confirm Password</label>
+            <div class="input-wrap">
+              <input type="password" id="confPass" placeholder="Repeat your security key" autocomplete="new-password">
+              <span class="pw-eye" id="eye2">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </span>
+            </div>
+            <div class="err-msg" id="confErr"><span>⚠</span><span id="confErrTxt"></span></div>
+          </div>
+
+          <button class="btn" id="resetBtn">Reset Password</button>
+        </div>
+
+        <!-- ── STEP 4: Done ── -->
+        <div class="step" id="step4">
+          <div class="step-header">
+            <div class="step-icon-wrap" style="background:rgba(74,222,128,0.1);border-color:rgba(74,222,128,0.2)">✅</div>
+            <div class="step-title">Security Key Updated!</div>
+            <div class="step-sub">Your Recall AI Password has been reset successfully.</div>
+          </div>
+
+          <div class="success-box">
+            <p>You can now <strong>sign in</strong> with your Password.<br>Your email has been pre-filled on the login page.</p>
+          </div>
+
+          <button class="btn" id="goLoginFinal" style="margin-top:24px">Go to Sign In →</button>
+        </div>
+
+      </div><!-- /card -->
+    </div><!-- /card-wrap -->
+  </div><!-- /page -->
+
+  <div class="toast" id="toast">
+    <span id="toastIcon" class="t-ok">✓</span>
+    <span id="toastMsg"></span>
+  </div>
+
+
+<script src="forgot.js"></script>
+</body>
+</html>
