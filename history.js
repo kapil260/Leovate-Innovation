@@ -60,7 +60,8 @@ function escHtml(s) {
 
 const TAG_ICONS = {
   Tech:'⚡', Science:'🔬', Health:'❤️',
-  Finance:'💰', History:'📜', Other:'🔍'
+  Finance:'💰', History:'📜', Sports:'🏆',
+  Music:'🎵', Fitness:'🏋️', Other:'🔍'
 };
 const TAG_COLORS = {
   Tech:    { bar:'#6366f1', bg:'rgba(99,102,241,0.15)'  },
@@ -68,6 +69,9 @@ const TAG_COLORS = {
   Health:  { bar:'#ef4444', bg:'rgba(239,68,68,0.15)'   },
   Finance: { bar:'#f59e0b', bg:'rgba(245,158,11,0.15)'  },
   History: { bar:'#8b5cf6', bg:'rgba(139,92,246,0.15)'  },
+  Sports:  { bar:'#f97316', bg:'rgba(249,115,22,0.15)'  },
+  Music:   { bar:'#ec4899', bg:'rgba(236,72,153,0.15)'  },
+  Fitness: { bar:'#14b8a6', bg:'rgba(20,184,166,0.15)'  },
   Other:   { bar:'#64748b', bg:'rgba(100,116,139,0.15)' },
 };
 
@@ -87,7 +91,8 @@ function sourceColor(src) {
 
 function tagCls(tag) {
   const m = {Tech:'tech',Science:'science',Health:'health',
-             Finance:'finance',History:'history',Other:'other'};
+             Finance:'finance',History:'history',Sports:'sports',
+             Music:'music',Fitness:'fitness',Other:'other'};
   return 'tag-' + (m[tag] || 'other');
 }
 
@@ -335,10 +340,24 @@ function openSummaryModal(s) {
 
   const smBody = document.getElementById('smSummary');
   if (s.summary && s.summary.trim()) {
-    // Render paragraphs properly
-    smBody.innerHTML = s.summary.split(/\n\n+/).map(p =>
-      `<p style="margin-bottom:12px;last-child:margin-bottom:0">${escHtml(p.trim())}</p>`
-    ).join('');
+    // Check if this is a speech/biography format (has "Key Points:" section)
+    const isSpeechFormat = /Key Points:/i.test(s.summary);
+
+    if (isSpeechFormat) {
+      // ── SPEECH / BIO RENDER ──────────────────────────────────
+      // Splits on Key Points:, renders intro + bullet list + bold quotes
+      smBody.innerHTML = renderSpeechSummary(s.summary);
+    } else {
+      // ── STANDARD PARAGRAPH RENDER ───────────────────────────
+      smBody.innerHTML = s.summary.split(/\n\n+/).map(p => {
+        // Process **bold** quotes inside paragraphs
+        const processed = escHtml(p.trim())
+          .replace(/\*\*(".*?")\*\*/g, '<strong class="sm-quote">$1</strong>')
+          .replace(/\*\*([^*]+)\*\*/g, '<strong style="color:#e2e8ff;font-weight:700;">$1</strong>')
+          .replace(/\n/g, '<br>');
+        return `<p>${processed}</p>`;
+      }).join('');
+    }
     smBody.style.color = 'rgba(255,255,255,0.78)';
   } else {
     smBody.textContent = 'No AI summary available for this search.';
@@ -351,6 +370,57 @@ function openSummaryModal(s) {
   document.getElementById('summaryOverlay').onclick = function(e) {
     if (e.target === this) closeSummaryModal();
   };
+}
+
+/* ── SPEECH SUMMARY RENDERER ────────────── */
+// Converts speech/bio formatted text (with "Key Points:" and **"quotes"**)
+// into rich HTML with a styled key-points list and highlighted quotes.
+function renderSpeechSummary(txt) {
+  const lines = txt.split('\n');
+  let html = '';
+  let inKeyPoints = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    if (/^Key Points:/i.test(line)) {
+      // Start the key points section
+      inKeyPoints = true;
+      html += `<div class="sm-keypoints-label">Key Points</div><ul class="sm-keypoints-list">`;
+      continue;
+    }
+
+    // Process **"quote"** → highlighted quote block
+    // Process **text** → bold
+    function processLine(text) {
+      let safe = escHtml(text);
+      // Bold quotes (speech format) — render as a block quote
+      safe = safe.replace(/\*\*(&quot;.*?&quot;)\*\*/g,
+        '<span class="sm-quote">$1</span>');
+      // Regular bold
+      safe = safe.replace(/\*\*([^*]+)\*\*/g,
+        '<strong style="color:#e2e8ff;font-weight:700;">$1</strong>');
+      return safe;
+    }
+
+    if (inKeyPoints && /^[•\-\*]/.test(line)) {
+      const content = line.replace(/^[•\-\*]\s*/, '');
+      html += `<li class="sm-keypoint-item">${processLine(content)}</li>`;
+    } else if (inKeyPoints) {
+      // A bold quote line standing alone inside key points section
+      html += `<li class="sm-keypoint-item">${processLine(line)}</li>`;
+    } else {
+      // Intro paragraph (before Key Points:)
+      html += `<p class="sm-intro-para">${processLine(line)}</p>`;
+    }
+  }
+
+  if (inKeyPoints) {
+    html += `</ul>`;
+  }
+
+  return html || `<p>${escHtml(txt)}</p>`;
 }
 function closeSummaryModal() {
   document.getElementById('summaryOverlay').classList.remove('open');
