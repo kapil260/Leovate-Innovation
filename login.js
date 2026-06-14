@@ -5,7 +5,7 @@
 
 'use strict';
 
-const BACKEND_URL = 'http://localhost:5000';
+const BACKEND_URL = 'https://leovate-innovation-3.onrender.com';
 const API = { signin: `${BACKEND_URL}/api/auth/login` };
 
 const dom = {
