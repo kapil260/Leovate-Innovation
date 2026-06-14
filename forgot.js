@@ -8,7 +8,7 @@
 ═══════════════════════════════════════════════════════════ */
 'use strict';
 
-const API = 'http://localhost:5000';
+const API = 'https://leovate-innovation-3.onrender.com';
 
 let email      = '';
 let resetToken = '';
