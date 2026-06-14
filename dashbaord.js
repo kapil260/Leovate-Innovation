@@ -63,13 +63,16 @@ function showToast(message, type) {
 }
 
 /* ── TAG HELPERS ────────────────────────── */
-const TAG_ICONS = { Tech:'⚡', Science:'🔬', Health:'❤️', Finance:'💰', History:'📜', Other:'🔍' };
+const TAG_ICONS = { Tech:'⚡', Science:'🔬', Health:'❤️', Finance:'💰', History:'📜', Sports:'🏆', Music:'🎵', Fitness:'🏋️', Other:'🔍' };
 const TAG_COLORS = {
   Tech:    { bar:'#6366f1', iconBg:'rgba(99,102,241,0.15)' },
   Science: { bar:'#10b981', iconBg:'rgba(16,185,129,0.15)' },
   Health:  { bar:'#ef4444', iconBg:'rgba(239,68,68,0.15)'  },
   Finance: { bar:'#f59e0b', iconBg:'rgba(245,158,11,0.15)' },
   History: { bar:'#8b5cf6', iconBg:'rgba(139,92,246,0.15)' },
+  Sports:  { bar:'#f97316', iconBg:'rgba(249,115,22,0.15)' },
+  Music:   { bar:'#ec4899', iconBg:'rgba(236,72,153,0.15)' },
+  Fitness: { bar:'#14b8a6', iconBg:'rgba(20,184,166,0.15)' },
   Other:   { bar:'#64748b', iconBg:'rgba(100,116,139,0.15)'},
 };
 function tagClass(tag) {
@@ -155,8 +158,17 @@ function openSummaryModal(search) {
   if (modalTime) modalTime.textContent = '🕐 ' + (search.timestamp ? new Date(search.timestamp).toLocaleString() : 'Unknown time');
   const summaryEl = document.getElementById('modalSummary');
   if (summaryEl) {
-    summaryEl.textContent = search.summary && search.summary.trim() ? search.summary : 'No AI summary available.';
-    summaryEl.style.color = search.summary ? 'rgba(255,255,255,0.78)' : 'rgba(255,255,255,0.35)';
+    if (search.summary && search.summary.trim()) {
+      // Render each paragraph as its own <p> for proper margin/spacing
+      summaryEl.innerHTML = search.summary
+        .split(/\n\n+/)
+        .map(p => `<p>${escHtml(p.trim()).replace(/\n/g, '<br>')}</p>`)
+        .join('');
+      summaryEl.style.color = 'rgba(255,255,255,0.78)';
+    } else {
+      summaryEl.textContent = 'No AI summary available.';
+      summaryEl.style.color = 'rgba(255,255,255,0.35)';
+    }
   }
   const modalQuery = document.getElementById('modalQuery');
   if (modalQuery) modalQuery.textContent = '"' + search.query + '"';
@@ -399,7 +411,7 @@ function init() {
       setTimeout(closePlatformPopup, 150);
     });
   });
-  });
+  
 
   // Logout button (if exists in dashboard HTML)
   const logoutBtn = document.getElementById('logoutBtn');
