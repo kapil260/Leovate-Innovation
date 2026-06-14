@@ -1,10 +1,31 @@
 // ============================================================
-// server.js — Recall AI Backend Entry Point (v2)
+// server.js — Recall AI Backend Entry Point (v3)
 // ============================================================
 
-const express      = require("express");
-const cors         = require("cors");
+const express = require("express");
+const cors    = require("cors");
 require("dotenv").config();
+
+// ── STARTUP ENV CHECK ─────────────────────────────────────────
+const REQUIRED_VARS = [
+  "SUPABASE_URL",
+  "SUPABASE_SERVICE_KEY",
+  "JWT_SECRET",
+  "GMAIL_USER",
+  "GMAIL_APP_PASSWORD",
+];
+const missing = REQUIRED_VARS.filter(v => !process.env[v]);
+if (missing.length > 0) {
+  console.error("\n╔════════════════════════════════════════════╗");
+  console.error("║   ❌ MISSING ENVIRONMENT VARIABLES         ║");
+  console.error("╠════════════════════════════════════════════╣");
+  missing.forEach(v => console.error(`║  ❌ ${v.padEnd(38)} ║`));
+  console.error("╠════════════════════════════════════════════╣");
+  console.error("║  Set these in Render → Environment tab.   ║");
+  console.error("╚════════════════════════════════════════════╝\n");
+} else {
+  console.log("[Recall AI] ✅ All required env vars present");
+}
 
 const authRoutes   = require("./routes/authRoutes");
 const searchRoutes = require("./routes/searchRoutes");
@@ -28,8 +49,25 @@ app.use("/api/user",     userRoutes);
 // ── PING ROUTE ────────────────────────────────────────────────
 app.get("/api/ping", (req, res) => res.json({ pong: true, ts: Date.now() }));
 
+// ── HEALTH / DIAGNOSTIC ROUTE ─────────────────────────────────
+app.get("/api/health", (req, res) => {
+  const checks = {
+    SUPABASE_URL:          !!process.env.SUPABASE_URL,
+    SUPABASE_SERVICE_KEY:  !!process.env.SUPABASE_SERVICE_KEY,
+    JWT_SECRET:            !!process.env.JWT_SECRET,
+    GMAIL_USER:            !!process.env.GMAIL_USER,
+    GMAIL_APP_PASSWORD:    !!process.env.GMAIL_APP_PASSWORD,
+    GROQ_API_KEY:          !!process.env.GROQ_API_KEY,
+  };
+  const allOk = Object.values(checks).every(Boolean);
+  res.status(allOk ? 200 : 500).json({
+    status: allOk ? "ok" : "missing_env_vars",
+    env: checks,
+    node_env: process.env.NODE_ENV || "not set",
+  });
+});
+
 // ── SHARED SEARCH PAGE ────────────────────────────────────────
-// Serves the public shared-search HTML page
 app.get("/shared/:token", (req, res) => {
   res.sendFile(__dirname + "/public/shared.html");
 });
@@ -40,67 +78,30 @@ app.get("/", (req, res) => {
   res.json({
     project: "Recall AI",
     status:  "Server is running ✅",
-    version: "3.0.0",
-    ai:      "Google Gemini (free)",
+    version: "3.1.0",
     endpoints: {
+      health: "GET  /api/health  (shows env var status)",
       auth: {
-        signup:  "POST /api/auth/signup",
-        login:   "POST /api/auth/login",
-        me:      "GET  /api/auth/me"
+        signupSendOtp:  "POST /api/auth/signup-send-otp",
+        signupVerify:   "POST /api/auth/signup-verify",
+        signupResend:   "POST /api/auth/signup-resend-otp",
+        login:          "POST /api/auth/login",
+        me:             "GET  /api/auth/me",
       },
-      searches: {
-        save:        "POST   /api/searches/save",
-        getAll:      "GET    /api/searches/",
-        stats:       "GET    /api/searches/stats",
-        insight:     "GET    /api/searches/insight",
-        delete:      "DELETE /api/searches/:id",
-        share:       "PATCH  /api/searches/:id/share",
-        unshare:     "PATCH  /api/searches/:id/unshare",
-        viewShared:  "GET    /api/searches/shared/:token",
-        retagAll:    "POST   /api/searches/retag-all"
-      },
-      user: {
-        forgotPassword:      "POST   /api/user/forgot-password",
-        resetPassword:       "POST   /api/user/reset-password",
-        changePassword:      "POST   /api/user/password",
-        resendVerification:  "POST   /api/user/resend-verification",
-        verifyEmail:         "POST   /api/user/verify-email",
-        getSettings:         "GET    /api/user/settings",
-        saveSettings:        "POST   /api/user/settings",
-        getSubscription:     "GET    /api/user/subscription",
-        upgradeSubscription: "POST   /api/user/subscription/upgrade",
-        cancelSubscription:  "POST   /api/user/subscription/cancel",
-        exportData:          "GET    /api/user/export?format=json|csv",
-        deleteAccount:       "DELETE /api/user/account"
-      }
     }
   });
 });
 
 // ── 404 HANDLER ───────────────────────────────────────────────
-app.use((req, res) => {
-  res.status(404).json({ error: "Route not found." });
-});
+app.use((req, res) => res.status(404).json({ error: "Route not found." }));
 
 // ── START SERVER ──────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
-
 app.listen(PORT, () => {
-  console.log("");
-  console.log("╔════════════════════════════════════════════╗");
-  console.log("║         RECALL AI — BACKEND v3             ║");
+  console.log("\n╔════════════════════════════════════════════╗");
+  console.log("║         RECALL AI — BACKEND v3.1          ║");
   console.log("╠════════════════════════════════════════════╣");
-  console.log(`║  Server:  http://localhost:${PORT}           ║`);
-  console.log("║  AI:      Google Gemini (free)             ║");
-  console.log("║  DB:      Supabase                         ║");
-  console.log("║  New:     Password Change (auth) ✅        ║");
-  console.log("║  New:     Email Verification ✅            ║");
-  console.log("║  New:     Settings Persistence ✅          ║");
-  console.log("║  New:     Subscription Routes ✅           ║");
-  console.log("║  New:     Account Deletion (GDPR) ✅       ║");
-  console.log("║  New:     CSV/JSON Export ✅               ║");
-  console.log("║  New:     Shared Search Page ✅            ║");
-  console.log("║  Status:  Running ✅                       ║");
-  console.log("╚════════════════════════════════════════════╝");
-  console.log("");
+  console.log(`║  Server: http://localhost:${PORT}              ║`);
+  console.log("║  Health: /api/health                      ║");
+  console.log("╚════════════════════════════════════════════╝\n");
 });
