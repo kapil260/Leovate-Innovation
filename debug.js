@@ -1,6 +1,6 @@
 'use strict';
 
-const BACKEND_URL = 'http://localhost:5000';
+const BACKEND_URL = 'https://leovate-innovation-3.onrender.com';
 
 function row(label, value, cls) {
   return `<div class="row"><span class="label">${label}</span><span class="val ${cls||''}">${value}</span></div>`;
