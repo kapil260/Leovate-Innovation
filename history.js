@@ -12,7 +12,7 @@
 'use strict';
 
 /* ── CONFIG ─────────────────────────────── */
-const BACKEND_URL = 'http://localhost:5000';
+const BACKEND_URL = 'https://leovate-innovation-3.onrender.com';
 const API = {
   history: `${BACKEND_URL}/api/searches/`,
   search:  `${BACKEND_URL}/api/searches/?q=`,
