@@ -9,7 +9,7 @@
 
 'use strict';
 
-const BACKEND_URL = 'http://localhost:5000';
+const BACKEND_URL = 'https://leovate-innovation-3.onrender.com';
 
 /* ── Recent query cache (dedup within 60 seconds per query) ─── */
 const recentlySaved = new Map();
