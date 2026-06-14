@@ -1,18 +1,22 @@
 /* ─────────────────────────────────────────
    RECALL AI — signup.js
-   Fixed: uses chrome.storage.local (not localStorage)
-   Added: real-time email existence validation
+   2-step signup: collect details → verify email OTP → create account
 ───────────────────────────────────────── */
 
 'use strict';
 
 const BACKEND_URL = 'http://localhost:5000';
 const API = {
-  signup:      `${BACKEND_URL}/api/auth/signup`,
-  checkEmail:  `${BACKEND_URL}/api/auth/check-email`,
+  sendOtp:   `${BACKEND_URL}/api/auth/signup-send-otp`,
+  verifyOtp: `${BACKEND_URL}/api/auth/signup-verify`,
+  resendOtp: `${BACKEND_URL}/api/auth/signup-resend-otp`,
+  ping:      `${BACKEND_URL}/api/ping`,
 };
 
+// ── DOM refs ──────────────────────────────────────────────────
 const dom = {
+  // Step 1
+  step1:         document.getElementById('step1'),
   nameInput:     document.getElementById('name'),
   emailInput:    document.getElementById('email'),
   passwordInput: document.getElementById('password'),
@@ -22,25 +26,31 @@ const dom = {
   submitBtn:     document.getElementById('submitBtn'),
   pwToggle:      document.getElementById('pwToggle'),
   eyeIcon:       document.getElementById('eyeIcon'),
+  // Step 2
+  step2:         document.getElementById('step2'),
+  otpEmailLabel: document.getElementById('otpEmailLabel'),
+  otpInputs:     Array.from({ length: 6 }, (_, i) => document.getElementById(`o${i}`)),
+  otpError:      document.getElementById('otpError'),
+  verifyBtn:     document.getElementById('verifyBtn'),
+  resendBtn:     document.getElementById('resendBtn'),
+  resendTimer:   document.getElementById('resendTimer'),
+  // Shared
   toast:         document.getElementById('toast'),
   toastIcon:     document.getElementById('toastIcon'),
   toastMsg:      document.getElementById('toastMsg'),
   latency:       document.getElementById('latencyDisplay'),
 };
 
-/* If already logged in, go to dashboard */
+// ── State ─────────────────────────────────────────────────────
+let pendingEmail = '';
+let resendCountdown = null;
+
+// ── Redirect if already logged in ────────────────────────────
 chrome.storage.local.get(['recall_token'], (stored) => {
-  if (stored.recall_token) {
-    window.location.href = '../dashboard-page/dashboard.html';
-  }
+  if (stored.recall_token) window.location.href = '../dashboard-page/dashboard.html';
 });
 
-/* ── Email validation state ───────────────────────────────────
-   We cache the last checked email so we don't re-hit the API
-   on every keystroke — only on blur or when the value changes. */
-let emailCheckCache = { email: null, valid: false, reason: '' };
-let emailCheckInFlight = false;
-
+// ── Toast ─────────────────────────────────────────────────────
 let toastTimer = null;
 function showToast(message, type = 'success') {
   clearTimeout(toastTimer);
@@ -50,218 +60,238 @@ function showToast(message, type = 'success') {
   toastTimer = setTimeout(() => dom.toast.classList.remove('show'), 3500);
 }
 
-function setLoading(isLoading) {
-  dom.submitBtn.classList.toggle('loading', isLoading);
-  dom.submitBtn.disabled = isLoading;
+// ── Loading state ─────────────────────────────────────────────
+function setLoading(btn, isLoading) {
+  btn.classList.toggle('loading', isLoading);
+  btn.disabled = isLoading;
 }
 
+// ── Field errors ──────────────────────────────────────────────
 function clearErrors() {
-  [[dom.nameInput, dom.nameError],[dom.emailInput, dom.emailError],[dom.passwordInput, dom.passwordError]]
-    .forEach(([input, error]) => {
-      input.classList.remove('is-error');
-      error.classList.remove('show');
-      error.textContent = '';
-    });
+  [[dom.nameInput, dom.nameError], [dom.emailInput, dom.emailError], [dom.passwordInput, dom.passwordError]]
+    .forEach(([input, err]) => { input.classList.remove('is-error'); err.classList.remove('show'); err.textContent = ''; });
 }
-
 function showFieldError(input, errorEl, message) {
-  input.classList.add('is-error');
-  errorEl.textContent = message;
-  errorEl.classList.add('show');
-}
-
-function clearFieldError(input, errorEl) {
-  input.classList.remove('is-error');
-  errorEl.classList.remove('show');
-  errorEl.textContent = '';
+  input.classList.add('is-error'); errorEl.textContent = message; errorEl.classList.add('show');
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/* ── Email existence check (calls backend → eva API) ──────────
-   Returns true if the email is valid & deliverable, false otherwise.
-   Shows an inline field error automatically on failure. */
-async function checkEmailExists(email) {
-  // Skip if unchanged from last check
-  if (emailCheckCache.email === email) {
-    if (!emailCheckCache.valid) {
-      showFieldError(dom.emailInput, dom.emailError, emailCheckCache.reason);
-    }
-    return emailCheckCache.valid;
-  }
-
-  // Show a subtle "checking…" state on the field
-  dom.emailError.textContent = 'Verifying email…';
-  dom.emailError.classList.add('show');
-  dom.emailInput.classList.remove('is-error');
-  emailCheckInFlight = true;
-
-  try {
-    const res = await fetch(`${API.checkEmail}?email=${encodeURIComponent(email)}`);
-    const data = await res.json();
-
-    emailCheckCache = { email, valid: data.valid, reason: data.reason || '' };
-
-    if (data.valid) {
-      // Clear the "Verifying…" message — email is good
-      clearFieldError(dom.emailInput, dom.emailError);
-      return true;
-    } else {
-      showFieldError(
-        dom.emailInput,
-        dom.emailError,
-        data.reason || 'This email address does not appear to exist.'
-      );
-      return false;
-    }
-  } catch {
-    // Backend unreachable — clear the message and allow signup (fail open)
-    clearFieldError(dom.emailInput, dom.emailError);
-    emailCheckCache = { email, valid: true, reason: 'Could not verify (offline).' };
-    return true;
-  } finally {
-    emailCheckInFlight = false;
-  }
-}
-
-/* ── On blur: validate email existence as soon as user leaves field ── */
-dom.emailInput.addEventListener('blur', async () => {
-  const email = dom.emailInput.value.trim();
-  if (!email) return; // empty — the submit validate() will catch it
-  if (!EMAIL_RE.test(email)) {
-    showFieldError(dom.emailInput, dom.emailError, 'Please enter a valid email address.');
-    return;
-  }
-  await checkEmailExists(email);
-});
-
-/* Clear cache when user edits the email field again */
-dom.emailInput.addEventListener('input', () => {
-  // Only clear the cached result — don't re-run the API on every keystroke
-  emailCheckCache.email = null;
-  if (dom.emailInput.classList.contains('is-error')) {
-    clearFieldError(dom.emailInput, dom.emailError);
-  }
-});
-
-/* ── Basic sync validation (format + required) ──────────────── */
-function validateSync() {
+// ── Validate step 1 inputs ────────────────────────────────────
+function validateStep1() {
   clearErrors();
   let ok = true;
-  const name     = dom.nameInput.value.trim();
-  const email    = dom.emailInput.value.trim();
-  const password = dom.passwordInput.value;
-
-  if (!name) {
-    showFieldError(dom.nameInput, dom.nameError, 'Please enter your full name.');
-    ok = false;
-  }
-  if (!email) {
-    showFieldError(dom.emailInput, dom.emailError, 'Email address is required.');
-    ok = false;
-  } else if (!EMAIL_RE.test(email)) {
-    showFieldError(dom.emailInput, dom.emailError, 'Please enter a valid email address.');
-    ok = false;
-  }
-  if (!password) {
-    showFieldError(dom.passwordInput, dom.passwordError, 'Password is required.');
-    ok = false;
-  } else if (password.length < 8) {
-    showFieldError(dom.passwordInput, dom.passwordError, 'Password must be at least 8 characters.');
-    ok = false;
-  }
+  if (!dom.nameInput.value.trim())      { showFieldError(dom.nameInput, dom.nameError, 'Please enter your full name.'); ok = false; }
+  if (!dom.emailInput.value.trim())     { showFieldError(dom.emailInput, dom.emailError, 'Email address is required.'); ok = false; }
+  else if (!EMAIL_RE.test(dom.emailInput.value.trim())) { showFieldError(dom.emailInput, dom.emailError, 'Please enter a valid email address.'); ok = false; }
+  if (!dom.passwordInput.value)         { showFieldError(dom.passwordInput, dom.passwordError, 'Password is required.'); ok = false; }
+  else if (dom.passwordInput.value.length < 8) { showFieldError(dom.passwordInput, dom.passwordError, 'Password must be at least 8 characters.'); ok = false; }
   return ok;
 }
 
-/* ── Main sign-up handler ─────────────────────────────────────
-   Flow:
-     1. Sync format/required validation
-     2. Email existence check (async — calls backend)
-     3. POST to /api/auth/signup
-*/
-async function signUp() {
-  if (!validateSync()) return;
-
-  const email = dom.emailInput.value.trim();
-
-  // ── Step 2: email existence check ──────────────────────────
-  setLoading(true);
-
-  const emailIsReal = await checkEmailExists(email);
-  if (!emailIsReal) {
-    // Error already shown in the field by checkEmailExists()
-    setLoading(false);
-    return;
-  }
-
-  // ── Step 3: submit to backend ───────────────────────────────
-  const t0 = performance.now();
+// ── STEP 1: Send OTP ──────────────────────────────────────────
+async function sendOtp() {
+  if (!validateStep1()) return;
+  setLoading(dom.submitBtn, true);
   try {
-    const response = await fetch(API.signup, {
-      method: 'POST',
+    const res  = await fetch(API.sendOtp, {
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+      body:    JSON.stringify({
         name:     dom.nameInput.value.trim(),
-        email:    email,
+        email:    dom.emailInput.value.trim(),
         password: dom.passwordInput.value,
       }),
     });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      pendingEmail = dom.emailInput.value.trim().toLowerCase();
+      showToast(`Code sent to ${pendingEmail}`, 'success');
+      showStep2();
+    } else {
+      const msg = data.error || 'Something went wrong.';
+      showToast(msg, 'error');
+      const lower = msg.toLowerCase();
+      if (lower.includes('email'))    showFieldError(dom.emailInput,    dom.emailError,    msg);
+      if (lower.includes('name'))     showFieldError(dom.nameInput,     dom.nameError,     msg);
+      if (lower.includes('password')) showFieldError(dom.passwordInput, dom.passwordError, msg);
+    }
+  } catch {
+    showToast('Cannot reach server — is the backend running on port 5000?', 'error');
+  } finally {
+    setLoading(dom.submitBtn, false);
+  }
+}
 
-    const latencyMs = Math.round(performance.now() - t0);
-    if (dom.latency) dom.latency.textContent = `Latency: ${latencyMs}ms`;
+// ── Show / hide steps ─────────────────────────────────────────
+function showStep2() {
+  dom.step1.style.display = 'none';
+  dom.step2.style.display = 'block';
+  dom.step2.classList.add('step-enter');
+  if (dom.otpEmailLabel) dom.otpEmailLabel.textContent = pendingEmail;
+  dom.otpInputs[0].focus();
+  startResendCountdown(60);
+}
 
-    const data = await response.json().catch(() => ({}));
+function showStep1() {
+  dom.step2.style.display = 'none';
+  dom.step1.style.display = 'block';
+}
 
-    if (response.ok) {
+// ── OTP input behaviour ───────────────────────────────────────
+function initOtpInputs() {
+  dom.otpInputs.forEach((box, i) => {
+    box.addEventListener('input', () => {
+      box.value = box.value.replace(/\D/g, '').slice(-1);
+      if (box.value && i < 5) dom.otpInputs[i + 1].focus();
+      clearOtpError();
+    });
+    box.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !box.value && i > 0) {
+        dom.otpInputs[i - 1].focus();
+        dom.otpInputs[i - 1].value = '';
+      }
+      if (e.key === 'Enter') verifyOtp();
+    });
+    box.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const digits = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 6);
+      digits.split('').forEach((d, j) => { if (dom.otpInputs[j]) dom.otpInputs[j].value = d; });
+      const next = Math.min(digits.length, 5);
+      dom.otpInputs[next].focus();
+      clearOtpError();
+    });
+  });
+}
+
+function getOtpValue() { return dom.otpInputs.map(b => b.value).join(''); }
+
+function clearOtpError() {
+  dom.otpInputs.forEach(b => b.classList.remove('otp-err'));
+  if (dom.otpError) { dom.otpError.textContent = ''; dom.otpError.style.display = 'none'; }
+}
+
+function showOtpError(msg) {
+  dom.otpInputs.forEach(b => b.classList.add('otp-err'));
+  if (dom.otpError) { dom.otpError.textContent = msg; dom.otpError.style.display = 'block'; }
+}
+
+// ── STEP 2: Verify OTP + create account ──────────────────────
+async function verifyOtp() {
+  const otp = getOtpValue();
+  if (otp.length < 6) { showOtpError('Please enter all 6 digits.'); return; }
+  clearOtpError();
+  setLoading(dom.verifyBtn, true);
+  try {
+    const res  = await fetch(API.verifyOtp, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email: pendingEmail, otp }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
       showToast('Account created! Redirecting…', 'success');
       chrome.storage.local.set(
         { recall_token: data.token || '', recall_user: JSON.stringify(data.user || {}) },
         () => { setTimeout(() => { window.location.href = '../dashboard-page/dashboard.html'; }, 1800); }
       );
     } else {
-      const message = data.message || data.error || 'Something went wrong.';
-      showToast(message, 'error');
-      const lower = message.toLowerCase();
-      if (lower.includes('email'))    showFieldError(dom.emailInput,    dom.emailError,    message);
-      if (lower.includes('name'))     showFieldError(dom.nameInput,     dom.nameError,     message);
-      if (lower.includes('password')) showFieldError(dom.passwordInput, dom.passwordError, message);
+      const msg = data.error || 'Incorrect code. Please try again.';
+      showOtpError(msg);
+      showToast(msg, 'error');
+      // Clear boxes on wrong code so user can retype cleanly
+      dom.otpInputs.forEach(b => b.value = '');
+      dom.otpInputs[0].focus();
     }
   } catch {
     showToast('Cannot reach server — is the backend running on port 5000?', 'error');
   } finally {
-    setLoading(false);
+    setLoading(dom.verifyBtn, false);
   }
 }
 
-/* ── Password visibility toggle ─────────────────────────────── */
+// ── Resend OTP with cooldown timer ────────────────────────────
+function startResendCountdown(seconds) {
+  clearInterval(resendCountdown);
+  dom.resendBtn.disabled = true;
+  let remaining = seconds;
+  function tick() {
+    if (dom.resendTimer) dom.resendTimer.textContent = `Resend in ${remaining}s`;
+    remaining--;
+    if (remaining < 0) {
+      clearInterval(resendCountdown);
+      dom.resendBtn.disabled = false;
+      if (dom.resendTimer) dom.resendTimer.textContent = '';
+    }
+  }
+  tick();
+  resendCountdown = setInterval(tick, 1000);
+}
+
+async function resendOtp() {
+  if (dom.resendBtn.disabled) return;
+  setLoading(dom.resendBtn, true);
+  try {
+    const res  = await fetch(API.resendOtp, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email: pendingEmail }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      showToast('New code sent!', 'success');
+      dom.otpInputs.forEach(b => b.value = '');
+      dom.otpInputs[0].focus();
+      clearOtpError();
+      startResendCountdown(60);
+    } else {
+      showToast(data.error || 'Could not resend. Please try again.', 'error');
+    }
+  } catch {
+    showToast('Cannot reach server.', 'error');
+  } finally {
+    setLoading(dom.resendBtn, false);
+  }
+}
+
+// ── Password toggle ───────────────────────────────────────────
 const EYE_OPEN   = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
 const EYE_CLOSED = `<line x1="2" y1="2" x2="22" y2="22"/><path d="M6.71 6.71A10.94 10.94 0 0 0 1 12s4 8 11 8a10.9 10.9 0 0 0 5.29-1.35"/><path d="M17.5 17.5A10.9 10.9 0 0 0 23 12s-4-8-11-8"/>`;
-
 function togglePassword() {
   const isPass = dom.passwordInput.type === 'password';
   dom.passwordInput.type = isPass ? 'text' : 'password';
   dom.eyeIcon.innerHTML  = isPass ? EYE_CLOSED : EYE_OPEN;
 }
 
-/* ── Latency ping ────────────────────────────────────────────── */
+// ── Latency ping ──────────────────────────────────────────────
 async function pingLatency() {
   try {
     const t0 = performance.now();
-    await fetch(`${BACKEND_URL}/api/ping`, { cache: 'no-store' });
-    const ms = Math.round(performance.now() - t0);
-    if (dom.latency) dom.latency.textContent = `Latency: ${ms}ms`;
+    await fetch(API.ping, { cache: 'no-store' });
+    if (dom.latency) dom.latency.textContent = `Latency: ${Math.round(performance.now() - t0)}ms`;
   } catch {
     if (dom.latency) dom.latency.textContent = 'Server: offline';
   }
 }
 
-/* ── Init ────────────────────────────────────────────────────── */
+// ── Init ──────────────────────────────────────────────────────
 function init() {
-  dom.submitBtn.addEventListener('click', signUp);
+  // Step 1
+  dom.submitBtn.addEventListener('click', sendOtp);
   [dom.nameInput, dom.emailInput, dom.passwordInput].forEach(input => {
-    input.addEventListener('keydown', e => { if (e.key === 'Enter') signUp(); });
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') sendOtp(); });
   });
   dom.pwToggle.addEventListener('click', togglePassword);
+
+  // Step 2
+  initOtpInputs();
+  dom.verifyBtn.addEventListener('click', verifyOtp);
+  dom.resendBtn.addEventListener('click', resendOtp);
+
+  // "Change email" link — go back to step 1
+  const changeEmailLink = document.getElementById('changeEmailLink');
+  if (changeEmailLink) changeEmailLink.addEventListener('click', showStep1);
+
   pingLatency();
 }
 
