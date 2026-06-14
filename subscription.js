@@ -632,7 +632,7 @@ function loadUsageStats() {
       token = t;
       if (!token) return; // not logged in — keep local values
 
-      fetch('http://localhost:5000/api/searches/stats', {
+      fetch('https://leovate-innovation-3.onrender.com', {
         headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
       })
       .then(function (res) { return res.ok ? res.json() : null; })
