@@ -8,7 +8,7 @@
 ══════════════════════════════════════════════════════════════ */
 'use strict';
 
-const BACKEND_URL = 'http://localhost:5000';
+const BACKEND_URL = 'https://leovate-innovation-3.onrender.com';
 const API_PROFILE = `${BACKEND_URL}/api/user/profile`;
 const STORE_KEY   = 'recallai_profile';
 
