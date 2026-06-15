@@ -1,42 +1,22 @@
 // ============================================================
-// routes/authRoutes.js
+// routes/authRoutes.js — Uses Resend for email (works on Render)
 // ============================================================
 
-const express    = require("express");
-const router     = express.Router();
-const bcrypt     = require("bcryptjs");
-const jwt        = require("jsonwebtoken");
-const crypto     = require("crypto");
-const nodemailer = require("nodemailer");
-const supabase   = require("../supabaseClient");
-const protect    = require("../middleware/authMiddleware");
+const express  = require("express");
+const router   = express.Router();
+const bcrypt   = require("bcryptjs");
+const jwt      = require("jsonwebtoken");
+const crypto   = require("crypto");
+const supabase = require("../supabaseClient");
+const protect  = require("../middleware/authMiddleware");
 require("dotenv").config();
 
 const EMAIL_RE = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
 
-// ── EMAIL TRANSPORTER (Fixed for nodemailer v8) ───────────────
-function createTransporter() {
-  return nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-    tls: {
-      rejectUnauthorized: false,
-    },
-  });
-}
-
-// ── SEND SIGNUP OTP EMAIL ─────────────────────────────────────
+// ── SEND EMAIL VIA RESEND API ─────────────────────────────────
 async function sendSignupOtpEmail(toEmail, otp, username) {
-  const transporter = createTransporter();
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head><meta charset="UTF-8"></head>
+  const html = `<!DOCTYPE html>
+    <html><head><meta charset="UTF-8"></head>
     <body style="margin:0;padding:0;background:#060e20;font-family:'Segoe UI',Arial,sans-serif;">
       <table width="100%" cellpadding="0" cellspacing="0" style="background:#060e20;padding:40px 0;">
         <tr><td align="center">
@@ -49,53 +29,46 @@ async function sendSignupOtpEmail(toEmail, otp, username) {
             </tr>
             <tr>
               <td style="padding:36px 40px;">
-                <p style="margin:0 0 8px;font-size:24px;font-weight:700;color:#e8eaff;text-align:center;">
-                  Verify Your Email
-                </p>
+                <p style="margin:0 0 8px;font-size:24px;font-weight:700;color:#e8eaff;text-align:center;">Verify Your Email</p>
                 <p style="margin:0 0 28px;font-size:14px;color:#6b7db3;text-align:center;">
                   Hi ${username || "there"}, enter the code below to complete your Recall AI sign-up.
                 </p>
                 <div style="background:rgba(159,167,255,0.07);border:2px dashed rgba(159,167,255,0.3);
                   border-radius:14px;padding:28px;text-align:center;margin-bottom:28px;">
-                  <p style="margin:0 0 8px;font-size:11px;text-transform:uppercase;
-                    letter-spacing:0.15em;color:#6b7db3;">Your verification code</p>
-                  <p style="margin:0;font-size:42px;font-weight:700;letter-spacing:10px;
-                    color:#9fa7ff;font-family:'Courier New',monospace;">${otp}</p>
-                </div>
-                <div style="background:rgba(255,107,107,0.06);border-left:3px solid #ff6b6b;
-                  border-radius:4px;padding:12px 16px;margin-bottom:24px;">
-                  <p style="margin:0;font-size:13px;color:#6b7db3;">
-                    ⏱️ This code expires in <strong style="color:#e8eaff;">10 minutes</strong>.
-                    Do not share it with anyone.
-                  </p>
+                  <p style="margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:0.15em;color:#6b7db3;">Your verification code</p>
+                  <p style="margin:0;font-size:42px;font-weight:700;letter-spacing:10px;color:#9fa7ff;font-family:'Courier New',monospace;">${otp}</p>
                 </div>
                 <p style="margin:0;font-size:13px;color:#6b7db3;text-align:center;">
-                  If you didn't create a Recall AI account, you can safely ignore this email.
-                </p>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:20px 40px;text-align:center;border-top:1px solid rgba(159,167,255,0.1);">
-                <p style="margin:0;font-size:12px;color:#3d4f73;">
-                  © ${new Date().getFullYear()} Recall AI. This is an automated email.
+                  This code expires in <strong style="color:#e8eaff;">10 minutes</strong>. Do not share it.
                 </p>
               </td>
             </tr>
           </table>
         </td></tr>
       </table>
-    </body>
-    </html>
-  `;
-  await transporter.sendMail({
-    from:    `"Recall AI" <${process.env.GMAIL_USER}>`,
-    to:      toEmail,
-    subject: `${otp} is your Recall AI verification code`,
-    html,
+    </body></html>`;
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from:    "Recall AI <onboarding@resend.dev>",
+      to:      [toEmail],
+      subject: `${otp} is your Recall AI verification code`,
+      html,
+    }),
   });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`Resend API error: ${err}`);
+  }
 }
 
-// ── Helper: save OTP record ───────────────────────────────────
+// ── Helper: save OTP ──────────────────────────────────────────
 async function saveOtpRecord(userId, hashedOtp, expiresAt) {
   await supabase.from("otp_resets").delete().eq("user_id", userId);
   const { error } = await supabase.from("otp_resets").insert({
@@ -134,15 +107,12 @@ router.post("/signup-send-otp", async (req, res) => {
       .maybeSingle();
 
     if (lookupErr) {
-      console.error("Profile lookup error:", lookupErr.message, lookupErr.code);
+      console.error("Lookup error:", lookupErr.message);
       return res.status(500).json({ error: "Database error. Please try again." });
     }
 
-    if (existing && existing.email_verified) {
-      return res.status(400).json({
-        error: "An account with this email already exists. Please log in instead.",
-      });
-    }
+    if (existing && existing.email_verified)
+      return res.status(400).json({ error: "An account with this email already exists. Please log in instead." });
 
     const hashedPassword = await bcrypt.hash(password, 10);
     let userId;
@@ -152,51 +122,40 @@ router.post("/signup-send-otp", async (req, res) => {
         .from("profiles")
         .update({ username: cleanName, password: hashedPassword })
         .eq("id", existing.id);
-      if (updateErr) {
-        console.error("Profile update error:", updateErr.message, updateErr.code);
-        return res.status(500).json({ error: "Could not update account. Please try again." });
-      }
+      if (updateErr) return res.status(500).json({ error: "Could not update account. Please try again." });
       userId = existing.id;
     } else {
       const { data: newUser, error: insertError } = await supabase
         .from("profiles")
-        .insert({
-          username:       cleanName,
-          email:          normalEmail,
-          password:       hashedPassword,
-          email_verified: false,
-        })
+        .insert({ username: cleanName, email: normalEmail, password: hashedPassword, email_verified: false })
         .select("id")
         .single();
-
       if (insertError) {
-        console.error("Signup insert error:", insertError.message, "Code:", insertError.code, "Details:", insertError.details);
+        console.error("Insert error:", insertError.message, insertError.code);
         return res.status(500).json({ error: "Could not create account. Please try again." });
       }
       userId = newUser.id;
     }
 
-    const otp        = String(Math.floor(100000 + Math.random() * 900000));
-    const otpExpiry  = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-    const hashedOtp  = crypto.createHash("sha256").update(otp).digest("hex");
+    const otp       = String(Math.floor(100000 + Math.random() * 900000));
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
 
     const otpError = await saveOtpRecord(userId, hashedOtp, otpExpiry);
     if (otpError) {
-      console.error("OTP save error:", otpError.message, otpError.code);
-      return res.status(500).json({ error: "Could not send verification code. Please try again." });
+      console.error("OTP save error:", otpError.message);
+      return res.status(500).json({ error: "Could not save verification code. Please try again." });
     }
 
     try {
       await sendSignupOtpEmail(normalEmail, otp, cleanName);
     } catch (emailErr) {
-      console.error("Email send error:", emailErr.message);
+      console.error("Email error:", emailErr.message);
       await supabase.from("otp_resets").delete().eq("user_id", userId);
-      return res.status(500).json({
-        error: "Could not send verification email. Check your Gmail credentials in .env and try again.",
-      });
+      return res.status(500).json({ error: "Could not send verification email. Please try again." });
     }
 
-    console.log(`[Recall AI] ✅ Signup OTP sent to ${normalEmail}`);
+    console.log(`[Recall AI] ✅ OTP sent to ${normalEmail}`);
     return res.status(200).json({
       message: `Verification code sent to ${normalEmail}. Please check your inbox.`,
       email:   normalEmail,
@@ -207,7 +166,6 @@ router.post("/signup-send-otp", async (req, res) => {
     return res.status(500).json({ error: "Server error. Please try again." });
   }
 });
-
 
 // ── SIGNUP STEP 2: Verify OTP ─────────────────────────────────
 router.post("/signup-verify", async (req, res) => {
@@ -226,7 +184,7 @@ router.post("/signup-verify", async (req, res) => {
       .maybeSingle();
 
     if (!user)
-      return res.status(400).json({ error: "No pending signup found for this email. Please start over." });
+      return res.status(400).json({ error: "No pending signup found. Please start over." });
 
     const { data: otpRecord } = await supabase
       .from("otp_resets")
@@ -239,7 +197,7 @@ router.post("/signup-verify", async (req, res) => {
       return res.status(400).json({ error: "Verification code not found. Please request a new one." });
 
     if (new Date() > new Date(otpRecord.expires_at))
-      return res.status(400).json({ error: "This code has expired. Please click 'Resend code' to get a new one." });
+      return res.status(400).json({ error: "This code has expired. Please request a new one." });
 
     if ((otpRecord.attempts || 0) >= 5)
       return res.status(400).json({ error: "Too many incorrect attempts. Please request a new code." });
@@ -259,13 +217,9 @@ router.post("/signup-verify", async (req, res) => {
     await supabase.from("profiles").update({ email_verified: true }).eq("id", user.id);
     await supabase.from("otp_resets").delete().eq("user_id", user.id);
 
-    const token = jwt.sign(
-      { id: user.id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
-    console.log(`[Recall AI] ✅ Email verified + account activated: ${normalEmail}`);
+    console.log(`[Recall AI] ✅ Account verified: ${normalEmail}`);
     return res.status(201).json({
       message: "Account created successfully! Welcome to Recall AI.",
       token,
@@ -278,7 +232,6 @@ router.post("/signup-verify", async (req, res) => {
   }
 });
 
-
 // ── RESEND OTP ────────────────────────────────────────────────
 router.post("/signup-resend-otp", async (req, res) => {
   try {
@@ -286,7 +239,6 @@ router.post("/signup-resend-otp", async (req, res) => {
     if (!email) return res.status(400).json({ error: "Email is required." });
 
     const normalEmail = email.toLowerCase().trim();
-
     const { data: user } = await supabase
       .from("profiles")
       .select("id, username")
@@ -295,34 +247,23 @@ router.post("/signup-resend-otp", async (req, res) => {
       .maybeSingle();
 
     if (!user)
-      return res.status(400).json({ error: "No pending signup found. Please start the signup process again." });
+      return res.status(400).json({ error: "No pending signup found. Please start again." });
 
     const otp       = String(Math.floor(100000 + Math.random() * 900000));
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toISOString();
     const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
 
     const otpError = await saveOtpRecord(user.id, hashedOtp, otpExpiry);
-    if (otpError) {
-      console.error("OTP resend save error:", otpError.message);
-      return res.status(500).json({ error: "Could not resend code. Please try again." });
-    }
+    if (otpError) return res.status(500).json({ error: "Could not resend code. Please try again." });
 
-    try {
-      await sendSignupOtpEmail(normalEmail, otp, user.username);
-    } catch (emailErr) {
-      console.error("Resend email error:", emailErr.message);
-      return res.status(500).json({ error: "Could not send email. Please try again." });
-    }
+    await sendSignupOtpEmail(normalEmail, otp, user.username);
 
-    console.log(`[Recall AI] ✅ Signup OTP resent to ${normalEmail}`);
     return res.status(200).json({ message: "New verification code sent." });
-
   } catch (err) {
-    console.error("signup-resend-otp error:", err.message);
+    console.error("resend error:", err.message);
     return res.status(500).json({ error: "Server error. Please try again." });
   }
 });
-
 
 // ── LOGIN ─────────────────────────────────────────────────────
 router.post("/login", async (req, res) => {
@@ -331,7 +272,6 @@ router.post("/login", async (req, res) => {
 
     if (!email || !password)
       return res.status(400).json({ error: "Please provide your email and password." });
-
     if (!EMAIL_RE.test(email.trim()))
       return res.status(400).json({ error: "Please enter a valid email address." });
 
@@ -344,23 +284,18 @@ router.post("/login", async (req, res) => {
     if (findError || !user)
       return res.status(401).json({ error: "No account found with this email address." });
 
-    if (!user.email_verified) {
+    if (!user.email_verified)
       return res.status(401).json({
-        error: "Please verify your email before logging in. Check your inbox for the verification code.",
+        error: "Please verify your email before logging in.",
         unverified: true,
         email: user.email,
       });
-    }
 
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch)
       return res.status(401).json({ error: "Incorrect password. Please try again." });
 
-    const token = jwt.sign(
-      { id: user.id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
     return res.status(200).json({
       message: "Logged in successfully!",
@@ -374,16 +309,12 @@ router.post("/login", async (req, res) => {
   }
 });
 
-
 // ── GET CURRENT USER ──────────────────────────────────────────
 router.get("/me", protect, async (req, res) => {
   try {
     const { data: user, error } = await supabase
       .from("profiles")
-      .select(
-        "id, username, email, phone, bio, location, display_name, " +
-        "timezone, language, github, twitter, linkedin, website, avatar_url, created_at"
-      )
+      .select("id, username, email, phone, bio, location, display_name, timezone, language, github, twitter, linkedin, website, avatar_url, created_at")
       .eq("id", req.user.id)
       .single();
 
@@ -391,21 +322,13 @@ router.get("/me", protect, async (req, res) => {
 
     return res.status(200).json({
       user: {
-        id:          user.id,
-        name:        user.username,
-        email:       user.email,
-        phone:       user.phone        || "",
-        bio:         user.bio          || "",
-        location:    user.location     || "",
-        displayName: user.display_name || "",
-        timezone:    user.timezone     || "asia/kathmandu",
-        language:    user.language     || "en",
-        github:      user.github       || "",
-        twitter:     user.twitter      || "",
-        linkedin:    user.linkedin     || "",
-        website:     user.website      || "",
-        avatarUrl:   user.avatar_url   || "",
-        createdAt:   user.created_at,
+        id: user.id, name: user.username, email: user.email,
+        phone: user.phone || "", bio: user.bio || "",
+        location: user.location || "", displayName: user.display_name || "",
+        timezone: user.timezone || "asia/kathmandu", language: user.language || "en",
+        github: user.github || "", twitter: user.twitter || "",
+        linkedin: user.linkedin || "", website: user.website || "",
+        avatarUrl: user.avatar_url || "", createdAt: user.created_at,
       },
     });
   } catch (err) {
@@ -413,6 +336,5 @@ router.get("/me", protect, async (req, res) => {
     return res.status(500).json({ error: "Server error." });
   }
 });
-
 
 module.exports = router;
