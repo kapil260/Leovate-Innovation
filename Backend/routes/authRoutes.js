@@ -1,11 +1,5 @@
 // ============================================================
-// routes/authRoutes.js  (v3.1 — fixed)
-//
-// POST /api/auth/signup-send-otp   — Validate + create unverified account + send OTP
-// POST /api/auth/signup-verify     — Verify OTP → mark email_verified = true + issue JWT
-// POST /api/auth/signup-resend-otp — Resend OTP to a pending account
-// POST /api/auth/login             — Login (blocks unverified accounts)
-// GET  /api/auth/me                — Get current user profile
+// routes/authRoutes.js
 // ============================================================
 
 const express    = require("express");
@@ -18,34 +12,22 @@ const supabase   = require("../supabaseClient");
 const protect    = require("../middleware/authMiddleware");
 require("dotenv").config();
 
-// ── Email regex ───────────────────────────────────────────────
 const EMAIL_RE = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
 
-// ── EMAIL TRANSPORTER (matches userRoutes.js — strips spaces from app password) ──
+// ── EMAIL TRANSPORTER (Fixed for nodemailer v8) ───────────────
 function createTransporter() {
-  // Google App Passwords are shown with spaces (xxxx xxxx xxxx xxxx)
-  // Strip spaces so nodemailer can authenticate correctly
-  const appPass = (process.env.GMAIL_APP_PASSWORD || "").replace(/\s/g, "");
   return nodemailer.createTransport({
-    host:   "smtp.gmail.com",
-    port:   587,
+    host: "smtp.gmail.com",
+    port: 587,
     secure: false,
     auth: {
       user: process.env.GMAIL_USER,
-      pass: appPass,
+      pass: process.env.GMAIL_APP_PASSWORD,
     },
-    tls: { rejectUnauthorized: false },
+    tls: {
+      rejectUnauthorized: false,
+    },
   });
-}
-
-// ── JWT helper (safe — logs clear error if JWT_SECRET missing) ──
-function signToken(payload) {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    console.error("[Recall AI] ❌ JWT_SECRET is not set! Add it in Render → Environment.");
-    throw new Error("JWT_SECRET_MISSING");
-  }
-  return jwt.sign(payload, secret, { expiresIn: "7d" });
 }
 
 // ── SEND SIGNUP OTP EMAIL ─────────────────────────────────────
@@ -113,7 +95,7 @@ async function sendSignupOtpEmail(toEmail, otp, username) {
   });
 }
 
-// ── Helper: save/replace OTP record ──────────────────────────
+// ── Helper: save OTP record ───────────────────────────────────
 async function saveOtpRecord(userId, hashedOtp, expiresAt) {
   await supabase.from("otp_resets").delete().eq("user_id", userId);
   const { error } = await supabase.from("otp_resets").insert({
@@ -126,9 +108,7 @@ async function saveOtpRecord(userId, hashedOtp, expiresAt) {
   return error;
 }
 
-
-// ── SIGNUP STEP 1: Validate → create/update account → send OTP ─
-// POST /api/auth/signup-send-otp
+// ── SIGNUP STEP 1 ─────────────────────────────────────────────
 router.post("/signup-send-otp", async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -138,7 +118,7 @@ router.post("/signup-send-otp", async (req, res) => {
     if (!email || !email.trim())
       return res.status(400).json({ error: "Email address is required." });
     if (!EMAIL_RE.test(email.trim()))
-      return res.status(400).json({ error: "Please enter a valid email address (e.g. you@example.com)." });
+      return res.status(400).json({ error: "Please enter a valid email address." });
     if (!password)
       return res.status(400).json({ error: "Password is required." });
     if (password.length < 8)
@@ -147,11 +127,16 @@ router.post("/signup-send-otp", async (req, res) => {
     const normalEmail = email.toLowerCase().trim();
     const cleanName   = name.trim();
 
-    const { data: existing } = await supabase
+    const { data: existing, error: lookupErr } = await supabase
       .from("profiles")
       .select("id, email_verified")
       .eq("email", normalEmail)
       .maybeSingle();
+
+    if (lookupErr) {
+      console.error("Profile lookup error:", lookupErr.message, lookupErr.code);
+      return res.status(500).json({ error: "Database error. Please try again." });
+    }
 
     if (existing && existing.email_verified) {
       return res.status(400).json({
@@ -168,7 +153,7 @@ router.post("/signup-send-otp", async (req, res) => {
         .update({ username: cleanName, password: hashedPassword })
         .eq("id", existing.id);
       if (updateErr) {
-        console.error("Profile update error:", updateErr.message);
+        console.error("Profile update error:", updateErr.message, updateErr.code);
         return res.status(500).json({ error: "Could not update account. Please try again." });
       }
       userId = existing.id;
@@ -185,19 +170,19 @@ router.post("/signup-send-otp", async (req, res) => {
         .single();
 
       if (insertError) {
-        console.error("Signup insert error:", insertError.message);
+        console.error("Signup insert error:", insertError.message, "Code:", insertError.code, "Details:", insertError.details);
         return res.status(500).json({ error: "Could not create account. Please try again." });
       }
       userId = newUser.id;
     }
 
-    const otp       = String(Math.floor(100000 + Math.random() * 900000));
-    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-    const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
+    const otp        = String(Math.floor(100000 + Math.random() * 900000));
+    const otpExpiry  = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    const hashedOtp  = crypto.createHash("sha256").update(otp).digest("hex");
 
     const otpError = await saveOtpRecord(userId, hashedOtp, otpExpiry);
     if (otpError) {
-      console.error("OTP save error:", otpError.message);
+      console.error("OTP save error:", otpError.message, otpError.code);
       return res.status(500).json({ error: "Could not send verification code. Please try again." });
     }
 
@@ -207,7 +192,7 @@ router.post("/signup-send-otp", async (req, res) => {
       console.error("Email send error:", emailErr.message);
       await supabase.from("otp_resets").delete().eq("user_id", userId);
       return res.status(500).json({
-        error: "Could not send verification email. Check GMAIL_USER and GMAIL_APP_PASSWORD in Render environment.",
+        error: "Could not send verification email. Check your Gmail credentials in .env and try again.",
       });
     }
 
@@ -224,12 +209,10 @@ router.post("/signup-send-otp", async (req, res) => {
 });
 
 
-// ── SIGNUP STEP 2: Verify OTP → activate account + issue JWT ─
-// POST /api/auth/signup-verify
+// ── SIGNUP STEP 2: Verify OTP ─────────────────────────────────
 router.post("/signup-verify", async (req, res) => {
   try {
     const { email, otp } = req.body;
-
     if (!email || !otp)
       return res.status(400).json({ error: "Email and verification code are required." });
 
@@ -242,11 +225,8 @@ router.post("/signup-verify", async (req, res) => {
       .eq("email_verified", false)
       .maybeSingle();
 
-    if (!user) {
-      return res.status(400).json({
-        error: "No pending signup found for this email. Please start over.",
-      });
-    }
+    if (!user)
+      return res.status(400).json({ error: "No pending signup found for this email. Please start over." });
 
     const { data: otpRecord } = await supabase
       .from("otp_resets")
@@ -255,31 +235,19 @@ router.post("/signup-verify", async (req, res) => {
       .eq("verified", false)
       .maybeSingle();
 
-    if (!otpRecord) {
-      return res.status(400).json({
-        error: "Verification code not found. Please request a new one.",
-      });
-    }
+    if (!otpRecord)
+      return res.status(400).json({ error: "Verification code not found. Please request a new one." });
 
-    if (new Date() > new Date(otpRecord.expires_at)) {
-      return res.status(400).json({
-        error: "This code has expired. Please click 'Resend code' to get a new one.",
-      });
-    }
+    if (new Date() > new Date(otpRecord.expires_at))
+      return res.status(400).json({ error: "This code has expired. Please click 'Resend code' to get a new one." });
 
-    if ((otpRecord.attempts || 0) >= 5) {
-      return res.status(400).json({
-        error: "Too many incorrect attempts. Please request a new code.",
-      });
-    }
+    if ((otpRecord.attempts || 0) >= 5)
+      return res.status(400).json({ error: "Too many incorrect attempts. Please request a new code." });
 
     const hashedInput = crypto.createHash("sha256").update(otp.trim()).digest("hex");
     if (hashedInput !== otpRecord.otp_hash) {
       const newAttempts = (otpRecord.attempts || 0) + 1;
-      await supabase
-        .from("otp_resets")
-        .update({ attempts: newAttempts })
-        .eq("user_id", user.id);
+      await supabase.from("otp_resets").update({ attempts: newAttempts }).eq("user_id", user.id);
       const remaining = 5 - newAttempts;
       return res.status(400).json({
         error: remaining > 0
@@ -288,22 +256,14 @@ router.post("/signup-verify", async (req, res) => {
       });
     }
 
-    // OTP correct — activate the account
     await supabase.from("profiles").update({ email_verified: true }).eq("id", user.id);
     await supabase.from("otp_resets").delete().eq("user_id", user.id);
 
-    // Issue JWT — safe helper catches missing JWT_SECRET
-    let token;
-    try {
-      token = signToken({ id: user.id, email: user.email });
-    } catch (jwtErr) {
-      if (jwtErr.message === "JWT_SECRET_MISSING") {
-        return res.status(500).json({
-          error: "Server configuration error: JWT_SECRET is not set. Please ask the admin to add it in Render → Environment.",
-        });
-      }
-      throw jwtErr;
-    }
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
     console.log(`[Recall AI] ✅ Email verified + account activated: ${normalEmail}`);
     return res.status(201).json({
@@ -320,7 +280,6 @@ router.post("/signup-verify", async (req, res) => {
 
 
 // ── RESEND OTP ────────────────────────────────────────────────
-// POST /api/auth/signup-resend-otp
 router.post("/signup-resend-otp", async (req, res) => {
   try {
     const { email } = req.body;
@@ -335,11 +294,8 @@ router.post("/signup-resend-otp", async (req, res) => {
       .eq("email_verified", false)
       .maybeSingle();
 
-    if (!user) {
-      return res.status(400).json({
-        error: "No pending signup found. Please start the signup process again.",
-      });
-    }
+    if (!user)
+      return res.status(400).json({ error: "No pending signup found. Please start the signup process again." });
 
     const otp       = String(Math.floor(100000 + Math.random() * 900000));
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toISOString();
@@ -369,7 +325,6 @@ router.post("/signup-resend-otp", async (req, res) => {
 
 
 // ── LOGIN ─────────────────────────────────────────────────────
-// POST /api/auth/login
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -382,18 +337,12 @@ router.post("/login", async (req, res) => {
 
     const { data: user, error: findError } = await supabase
       .from("profiles")
-      .select("id, email, username, password, email_verified")
+      .select("*")
       .eq("email", email.toLowerCase().trim())
       .maybeSingle();
 
-    if (findError) {
-      console.error("Login DB error:", findError.message);
-      return res.status(500).json({ error: "Database error. Please try again." });
-    }
-
-    if (!user) {
+    if (findError || !user)
       return res.status(401).json({ error: "No account found with this email address." });
-    }
 
     if (!user.email_verified) {
       return res.status(401).json({
@@ -404,24 +353,15 @@ router.post("/login", async (req, res) => {
     }
 
     const passwordMatch = await bcrypt.compare(password, user.password);
-    if (!passwordMatch) {
+    if (!passwordMatch)
       return res.status(401).json({ error: "Incorrect password. Please try again." });
-    }
 
-    // Issue JWT — safe helper catches missing JWT_SECRET
-    let token;
-    try {
-      token = signToken({ id: user.id, email: user.email });
-    } catch (jwtErr) {
-      if (jwtErr.message === "JWT_SECRET_MISSING") {
-        return res.status(500).json({
-          error: "Server configuration error: JWT_SECRET is not set. Please ask the admin to add it in Render → Environment.",
-        });
-      }
-      throw jwtErr;
-    }
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
-    console.log(`[Recall AI] ✅ Login: ${user.email}`);
     return res.status(200).json({
       message: "Logged in successfully!",
       token,
@@ -436,45 +376,35 @@ router.post("/login", async (req, res) => {
 
 
 // ── GET CURRENT USER ──────────────────────────────────────────
-// GET /api/auth/me  (protected)
 router.get("/me", protect, async (req, res) => {
   try {
-    // Select only base columns that always exist
     const { data: user, error } = await supabase
       .from("profiles")
-      .select("id, username, email, created_at")
+      .select(
+        "id, username, email, phone, bio, location, display_name, " +
+        "timezone, language, github, twitter, linkedin, website, avatar_url, created_at"
+      )
       .eq("id", req.user.id)
       .single();
 
     if (error || !user) return res.status(404).json({ error: "User not found." });
-
-    // Try to get extended profile columns — these are added by migration
-    // If they don't exist yet, we gracefully default to empty strings
-    const { data: ext } = await supabase
-      .from("profiles")
-      .select(
-        "phone, bio, location, display_name, timezone, language, " +
-        "github, twitter, linkedin, website, avatar_url"
-      )
-      .eq("id", req.user.id)
-      .maybeSingle();
 
     return res.status(200).json({
       user: {
         id:          user.id,
         name:        user.username,
         email:       user.email,
-        phone:       ext?.phone        || "",
-        bio:         ext?.bio          || "",
-        location:    ext?.location     || "",
-        displayName: ext?.display_name || "",
-        timezone:    ext?.timezone     || "asia/kathmandu",
-        language:    ext?.language     || "en",
-        github:      ext?.github       || "",
-        twitter:     ext?.twitter      || "",
-        linkedin:    ext?.linkedin     || "",
-        website:     ext?.website      || "",
-        avatarUrl:   ext?.avatar_url   || "",
+        phone:       user.phone        || "",
+        bio:         user.bio          || "",
+        location:    user.location     || "",
+        displayName: user.display_name || "",
+        timezone:    user.timezone     || "asia/kathmandu",
+        language:    user.language     || "en",
+        github:      user.github       || "",
+        twitter:     user.twitter      || "",
+        linkedin:    user.linkedin     || "",
+        website:     user.website      || "",
+        avatarUrl:   user.avatar_url   || "",
         createdAt:   user.created_at,
       },
     });
