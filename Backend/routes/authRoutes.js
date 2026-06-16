@@ -1,5 +1,5 @@
 // ============================================================
-// routes/authRoutes.js
+// routes/authRoutes.js  — Recall AI v3.1 (Resend email)
 //
 // POST /api/auth/signup-send-otp   — Validate + create unverified account + send OTP
 // POST /api/auth/signup-verify     — Verify OTP → mark email_verified = true
@@ -8,40 +8,42 @@
 // GET  /api/auth/me                — Get current user profile
 // ============================================================
 
-const express    = require("express");
-const router     = express.Router();
-const bcrypt     = require("bcryptjs");
-const jwt        = require("jsonwebtoken");
-const crypto     = require("crypto");
-const nodemailer = require("nodemailer");
-const supabase   = require("../supabaseClient");
-const protect    = require("../middleware/authMiddleware");
+const express  = require("express");
+const router   = express.Router();
+const bcrypt   = require("bcryptjs");
+const jwt      = require("jsonwebtoken");
+const crypto   = require("crypto");
+const supabase = require("../supabaseClient");
+const protect  = require("../middleware/authMiddleware");
 require("dotenv").config();
 
 // ── Email regex (strict) ──────────────────────────────────────
 const EMAIL_RE = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
 
-// ── EMAIL TRANSPORTER ─────────────────────────────────────────
-function createTransporter() {
-  // Strip spaces from app password (Google shows it with spaces but SMTP needs it without)
-  const appPass = (process.env.GMAIL_APP_PASSWORD || "").replace(/\s/g, "");
-  return nodemailer.createTransport({
-    host:   "smtp.gmail.com",
-    port:   587,
-    secure: false,          // STARTTLS on port 587 (port 465 is blocked on most cloud hosts)
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: appPass,
+// ── SEND EMAIL VIA RESEND (HTTP API — no SMTP, works on Render free tier) ──
+async function sendEmailResend({ to, subject, html }) {
+  const res = await fetch("https://api.resend.com/emails", {
+    method:  "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
+      "Content-Type":  "application/json",
     },
-    tls: {
-      rejectUnauthorized: false,   // avoids cert errors on some cloud hosts
-    },
+    body: JSON.stringify({
+      from:    "Recall AI <onboarding@resend.dev>",
+      to:      [to],
+      subject,
+      html,
+    }),
   });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(`Resend API error ${res.status}: ${err.message || JSON.stringify(err)}`);
+  }
+  return res.json();
 }
 
-// ── SEND SIGNUP OTP EMAIL ─────────────────────────────────────
+// ── SIGNUP OTP EMAIL TEMPLATE ─────────────────────────────────
 async function sendSignupOtpEmail(toEmail, otp, username) {
-  const transporter = createTransporter();
   const html = `
     <!DOCTYPE html>
     <html>
@@ -53,7 +55,7 @@ async function sendSignupOtpEmail(toEmail, otp, username) {
             style="background:#0d1b35;border-radius:16px;border:1px solid rgba(159,167,255,0.15);overflow:hidden;">
             <tr>
               <td style="padding:32px 40px 24px;text-align:center;border-bottom:1px solid rgba(159,167,255,0.1);">
-                <span style="font-size:22px;font-weight:700;color:#9fa7ff;">⚡ Recall AI</span>
+                <span style="font-size:22px;font-weight:700;color:#9fa7ff;">&#9889; Recall AI</span>
               </td>
             </tr>
             <tr>
@@ -74,7 +76,7 @@ async function sendSignupOtpEmail(toEmail, otp, username) {
                 <div style="background:rgba(255,107,107,0.06);border-left:3px solid #ff6b6b;
                   border-radius:4px;padding:12px 16px;margin-bottom:24px;">
                   <p style="margin:0;font-size:13px;color:#6b7db3;">
-                    ⏱️ This code expires in <strong style="color:#e8eaff;">10 minutes</strong>.
+                    This code expires in <strong style="color:#e8eaff;">10 minutes</strong>.
                     Do not share it with anyone.
                   </p>
                 </div>
@@ -86,7 +88,7 @@ async function sendSignupOtpEmail(toEmail, otp, username) {
             <tr>
               <td style="padding:20px 40px;text-align:center;border-top:1px solid rgba(159,167,255,0.1);">
                 <p style="margin:0;font-size:12px;color:#3d4f73;">
-                  © ${new Date().getFullYear()} Recall AI. This is an automated email.
+                  &copy; ${new Date().getFullYear()} Recall AI. This is an automated email.
                 </p>
               </td>
             </tr>
@@ -96,17 +98,15 @@ async function sendSignupOtpEmail(toEmail, otp, username) {
     </body>
     </html>
   `;
-  await transporter.sendMail({
-    from:    `"Recall AI" <${process.env.GMAIL_USER}>`,
+  await sendEmailResend({
     to:      toEmail,
     subject: `${otp} is your Recall AI verification code`,
     html,
   });
 }
 
-// ── Helper: save/replace OTP record (avoids upsert constraint issues) ──
+// ── Helper: save/replace OTP record ──────────────────────────
 async function saveOtpRecord(userId, hashedOtp, expiresAt) {
-  // Delete any existing OTP for this user first, then insert fresh
   await supabase.from("otp_resets").delete().eq("user_id", userId);
   const { error } = await supabase.from("otp_resets").insert({
     user_id:    userId,
@@ -126,27 +126,20 @@ router.post("/signup-send-otp", async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // ── Validate fields ───────────────────────────────────────
-    if (!name || !name.trim()) {
+    if (!name || !name.trim())
       return res.status(400).json({ error: "Please enter your full name." });
-    }
-    if (!email || !email.trim()) {
+    if (!email || !email.trim())
       return res.status(400).json({ error: "Email address is required." });
-    }
-    if (!EMAIL_RE.test(email.trim())) {
+    if (!EMAIL_RE.test(email.trim()))
       return res.status(400).json({ error: "Please enter a valid email address (e.g. you@example.com)." });
-    }
-    if (!password) {
+    if (!password)
       return res.status(400).json({ error: "Password is required." });
-    }
-    if (password.length < 8) {
+    if (password.length < 8)
       return res.status(400).json({ error: "Password must be at least 8 characters long." });
-    }
 
     const normalEmail = email.toLowerCase().trim();
     const cleanName   = name.trim();
 
-    // ── Check if a VERIFIED account already exists ────────────
     const { data: existing } = await supabase
       .from("profiles")
       .select("id, email_verified")
@@ -159,12 +152,10 @@ router.post("/signup-send-otp", async (req, res) => {
       });
     }
 
-    // ── Hash password ─────────────────────────────────────────
     const hashedPassword = await bcrypt.hash(password, 10);
     let userId;
 
     if (existing && !existing.email_verified) {
-      // Previous unverified attempt — update details and re-send
       const { error: updateErr } = await supabase
         .from("profiles")
         .update({ username: cleanName, password: hashedPassword })
@@ -175,7 +166,6 @@ router.post("/signup-send-otp", async (req, res) => {
       }
       userId = existing.id;
     } else {
-      // Brand new account — insert as unverified
       const { data: newUser, error: insertError } = await supabase
         .from("profiles")
         .insert({
@@ -194,27 +184,23 @@ router.post("/signup-send-otp", async (req, res) => {
       userId = newUser.id;
     }
 
-    // ── Generate 6-digit OTP ──────────────────────────────────
-    const otp        = String(Math.floor(100000 + Math.random() * 900000));
-    const otpExpiry  = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-    const hashedOtp  = crypto.createHash("sha256").update(otp).digest("hex");
+    const otp       = String(Math.floor(100000 + Math.random() * 900000));
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
 
-    // ── Save OTP (delete-then-insert to avoid constraint errors) ─
     const otpError = await saveOtpRecord(userId, hashedOtp, otpExpiry);
     if (otpError) {
       console.error("OTP save error:", otpError.message);
       return res.status(500).json({ error: "Could not send verification code. Please try again." });
     }
 
-    // ── Send OTP email ─────────────────────────────────────────
     try {
       await sendSignupOtpEmail(normalEmail, otp, cleanName);
     } catch (emailErr) {
       console.error("Email send error:", emailErr.message);
-      // Clean up the OTP record so user can retry
       await supabase.from("otp_resets").delete().eq("user_id", userId);
       return res.status(500).json({
-        error: "Could not send verification email. Check your Gmail credentials in .env and try again.",
+        error: "Could not send verification email. Please try again in a moment.",
       });
     }
 
@@ -239,13 +225,11 @@ router.post("/signup-verify", async (req, res) => {
   try {
     const { email, otp } = req.body;
 
-    if (!email || !otp) {
+    if (!email || !otp)
       return res.status(400).json({ error: "Email and verification code are required." });
-    }
 
     const normalEmail = email.toLowerCase().trim();
 
-    // ── Find the unverified user ──────────────────────────────
     const { data: user } = await supabase
       .from("profiles")
       .select("id, username, email")
@@ -259,7 +243,6 @@ router.post("/signup-verify", async (req, res) => {
       });
     }
 
-    // ── Find the OTP record ───────────────────────────────────
     const { data: otpRecord } = await supabase
       .from("otp_resets")
       .select("*")
@@ -273,21 +256,18 @@ router.post("/signup-verify", async (req, res) => {
       });
     }
 
-    // ── Check expiry ──────────────────────────────────────────
     if (new Date() > new Date(otpRecord.expires_at)) {
       return res.status(400).json({
         error: "This code has expired. Please click 'Resend code' to get a new one.",
       });
     }
 
-    // ── Check attempt limit ───────────────────────────────────
     if ((otpRecord.attempts || 0) >= 5) {
       return res.status(400).json({
         error: "Too many incorrect attempts. Please request a new code.",
       });
     }
 
-    // ── Verify OTP ────────────────────────────────────────────
     const hashedInput = crypto.createHash("sha256").update(otp.trim()).digest("hex");
     if (hashedInput !== otpRecord.otp_hash) {
       const newAttempts = (otpRecord.attempts || 0) + 1;
@@ -303,17 +283,9 @@ router.post("/signup-verify", async (req, res) => {
       });
     }
 
-    // ── OTP correct — activate the account ───────────────────
-    await supabase
-      .from("profiles")
-      .update({ email_verified: true })
-      .eq("id", user.id);
-    await supabase
-      .from("otp_resets")
-      .delete()
-      .eq("user_id", user.id);
+    await supabase.from("profiles").update({ email_verified: true }).eq("id", user.id);
+    await supabase.from("otp_resets").delete().eq("user_id", user.id);
 
-    // ── Issue JWT ─────────────────────────────────────────────
     const token = jwt.sign(
       { id: user.id, email: user.email },
       process.env.JWT_SECRET,
@@ -334,7 +306,7 @@ router.post("/signup-verify", async (req, res) => {
 });
 
 
-// ── RESEND OTP ────────────────────────────────────────────────
+// ── RESEND SIGNUP OTP ─────────────────────────────────────────
 // POST /api/auth/signup-resend-otp
 // Body: { email }
 
@@ -393,13 +365,10 @@ router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    if (!email || !password)
       return res.status(400).json({ error: "Please provide your email and password." });
-    }
-
-    if (!EMAIL_RE.test(email.trim())) {
+    if (!EMAIL_RE.test(email.trim()))
       return res.status(400).json({ error: "Please enter a valid email address." });
-    }
 
     const { data: user, error: findError } = await supabase
       .from("profiles")
@@ -407,11 +376,9 @@ router.post("/login", async (req, res) => {
       .eq("email", email.toLowerCase().trim())
       .maybeSingle();
 
-    if (findError || !user) {
+    if (findError || !user)
       return res.status(401).json({ error: "No account found with this email address." });
-    }
 
-    // Block login until email is verified
     if (!user.email_verified) {
       return res.status(401).json({
         error: "Please verify your email before logging in. Check your inbox for the verification code.",
@@ -421,9 +388,8 @@ router.post("/login", async (req, res) => {
     }
 
     const passwordMatch = await bcrypt.compare(password, user.password);
-    if (!passwordMatch) {
+    if (!passwordMatch)
       return res.status(401).json({ error: "Incorrect password. Please try again." });
-    }
 
     const token = jwt.sign(
       { id: user.id, email: user.email },
