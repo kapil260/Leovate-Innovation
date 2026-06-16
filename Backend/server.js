@@ -1,5 +1,5 @@
 // ============================================================
-// server.js — Recall AI Backend Entry Point (v3)
+// server.js — Recall AI Backend Entry Point (v3.1 — Resend)
 // ============================================================
 
 const express = require("express");
@@ -11,8 +11,7 @@ const REQUIRED_VARS = [
   "SUPABASE_URL",
   "SUPABASE_SERVICE_KEY",
   "JWT_SECRET",
-  "GMAIL_USER",
-  "GMAIL_APP_PASSWORD",
+  "RESEND_API_KEY",
 ];
 const missing = REQUIRED_VARS.filter(v => !process.env[v]);
 if (missing.length > 0) {
@@ -46,23 +45,22 @@ app.use("/api/auth",     authRoutes);
 app.use("/api/searches", searchRoutes);
 app.use("/api/user",     userRoutes);
 
-// ── PING ROUTE ────────────────────────────────────────────────
+// ── PING ──────────────────────────────────────────────────────
 app.get("/api/ping", (req, res) => res.json({ pong: true, ts: Date.now() }));
 
-// ── HEALTH / DIAGNOSTIC ROUTE ─────────────────────────────────
+// ── HEALTH / DIAGNOSTIC ───────────────────────────────────────
 app.get("/api/health", (req, res) => {
   const checks = {
-    SUPABASE_URL:          !!process.env.SUPABASE_URL,
-    SUPABASE_SERVICE_KEY:  !!process.env.SUPABASE_SERVICE_KEY,
-    JWT_SECRET:            !!process.env.JWT_SECRET,
-    GMAIL_USER:            !!process.env.GMAIL_USER,
-    GMAIL_APP_PASSWORD:    !!process.env.GMAIL_APP_PASSWORD,
-    GROQ_API_KEY:          !!process.env.GROQ_API_KEY,
+    SUPABASE_URL:         !!process.env.SUPABASE_URL,
+    SUPABASE_SERVICE_KEY: !!process.env.SUPABASE_SERVICE_KEY,
+    JWT_SECRET:           !!process.env.JWT_SECRET,
+    RESEND_API_KEY:       !!process.env.RESEND_API_KEY,
+    GROQ_API_KEY:         !!process.env.GROQ_API_KEY,
   };
   const allOk = Object.values(checks).every(Boolean);
   res.status(allOk ? 200 : 500).json({
-    status: allOk ? "ok" : "missing_env_vars",
-    env: checks,
+    status:   allOk ? "ok" : "missing_env_vars",
+    env:      checks,
     node_env: process.env.NODE_ENV || "not set",
   });
 });
@@ -73,14 +71,15 @@ app.get("/shared/:token", (req, res) => {
 });
 app.use(express.static(__dirname + "/public"));
 
-// ── HOME ROUTE ────────────────────────────────────────────────
+// ── HOME ──────────────────────────────────────────────────────
 app.get("/", (req, res) => {
   res.json({
     project: "Recall AI",
     status:  "Server is running ✅",
     version: "3.1.0",
+    email:   "Resend (HTTP API)",
     endpoints: {
-      health: "GET  /api/health  (shows env var status)",
+      health: "GET  /api/health",
       auth: {
         signupSendOtp:  "POST /api/auth/signup-send-otp",
         signupVerify:   "POST /api/auth/signup-verify",
@@ -92,16 +91,17 @@ app.get("/", (req, res) => {
   });
 });
 
-// ── 404 HANDLER ───────────────────────────────────────────────
+// ── 404 ───────────────────────────────────────────────────────
 app.use((req, res) => res.status(404).json({ error: "Route not found." }));
 
-// ── START SERVER ──────────────────────────────────────────────
+// ── START ─────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log("\n╔════════════════════════════════════════════╗");
-  console.log("║         RECALL AI — BACKEND v3.1          ║");
+  console.log("║       RECALL AI — BACKEND v3.1            ║");
   console.log("╠════════════════════════════════════════════╣");
   console.log(`║  Server: http://localhost:${PORT}              ║`);
+  console.log("║  Email:  Resend (SMTP-free) ✅            ║");
   console.log("║  Health: /api/health                      ║");
   console.log("╚════════════════════════════════════════════╝\n");
 });
