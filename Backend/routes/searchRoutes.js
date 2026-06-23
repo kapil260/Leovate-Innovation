@@ -179,16 +179,113 @@ router.post("/combine", protect, async (req, res) => {
       return res.status(500).json({ error: "AI could not generate a combined summary. Please try again." });
     }
 
+    // Save this combined summary permanently so the user can revisit it
+    // later from History → Combined tab without re-selecting and
+    // re-combining the same searches again.
+    let savedRecord = null;
+    try {
+      const { data: saved, error: saveErr } = await supabase
+        .from("combined_summaries")
+        .insert({
+          user_id:          userId,
+          topic:             topic.trim(),
+          combined_summary:  combinedSummary,
+          platforms:         platformList,
+          source_ids:        searchIds,
+          search_count:      searches.length
+        })
+        .select()
+        .single();
+
+      if (saveErr) {
+        // Don't fail the whole request if saving fails — the user still
+        // gets to see their combined summary, it just won't persist.
+        console.error("Combine — could not save combined_summaries row:", saveErr.message);
+      } else {
+        savedRecord = saved;
+      }
+    } catch (saveCatchErr) {
+      console.error("Combine — save exception:", saveCatchErr.message);
+    }
+
     res.status(200).json({
       message:         "Combined summary generated!",
       combinedSummary: combinedSummary,
       platforms:       platformList,
-      searchCount:     searches.length
+      searchCount:     searches.length,
+      combinedId:      savedRecord ? savedRecord.id : null,
+      savedAt:         savedRecord ? savedRecord.created_at : null
     });
 
   } catch (error) {
     console.error("Combine error:", error.message);
     res.status(500).json({ error: "Server error while combining summaries." });
+  }
+});
+
+
+// ── GET SAVED COMBINED SUMMARIES ──────────────────────────────
+// GET /api/searches/combined
+// Protected: YES
+// Returns every combined summary this user has previously generated,
+// newest first, so they can be revisited any time from the History page.
+// Returns: { message, count, combined }
+
+router.get("/combined", protect, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const { data, error } = await supabase
+      .from("combined_summaries")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Get combined summaries error:", error.message);
+      return res.status(500).json({ error: "Could not fetch combined summaries." });
+    }
+
+    res.status(200).json({
+      message:  "Combined summaries fetched.",
+      count:    data ? data.length : 0,
+      combined: data || []
+    });
+
+  } catch (error) {
+    console.error("Get combined summaries error:", error.message);
+    res.status(500).json({ error: "Server error while fetching combined summaries." });
+  }
+});
+
+
+// ── DELETE A SAVED COMBINED SUMMARY ───────────────────────────
+// DELETE /api/searches/combined/:id
+// Protected: YES
+// Lets the user remove a saved combined summary they no longer want.
+// Returns: { message }
+
+router.delete("/combined/:id", protect, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id }  = req.params;
+
+    const { error } = await supabase
+      .from("combined_summaries")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", userId); // security: only delete your own rows
+
+    if (error) {
+      console.error("Delete combined summary error:", error.message);
+      return res.status(500).json({ error: "Could not delete combined summary." });
+    }
+
+    res.status(200).json({ message: "Combined summary deleted." });
+
+  } catch (error) {
+    console.error("Delete combined summary error:", error.message);
+    res.status(500).json({ error: "Server error while deleting combined summary." });
   }
 });
 
