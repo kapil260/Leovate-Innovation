@@ -12,7 +12,7 @@
 'use strict';
 
 /* ── CONFIG ─────────────────────────────── */
-const BACKEND_URL = 'https://leovate-innovation-3.onrender.com';
+const BACKEND_URL = 'http://localhost:5000';
 const API = {
   history: `${BACKEND_URL}/api/searches/`,
   search:  `${BACKEND_URL}/api/searches/?q=`,
@@ -625,10 +625,69 @@ function closeCombinedModal() {
   document.getElementById('combinedOverlay').classList.remove('open');
 }
 
+/* ── TOPIC SIMILARITY CHECK ───────────────
+   Prevents combining unrelated searches (e.g. "Poco X5 5G Phone" +
+   "Bollywood Thriller Movies"). Uses two signals:
+     1. Tag match — if items don't share the same category tag,
+        they're almost certainly different topics.
+     2. Word overlap — compares significant words (4+ letters,
+        common stopwords removed) between query/title text.
+   If both signals disagree, the combine is blocked. */
+
+const STOPWORDS = new Set([
+  'what','is','the','are','this','that','with','from','about','for',
+  'and','best','top','how','does','can','will','your','you','have',
+  'has','was','were','which','who','where','when','why','list','some'
+]);
+
+function getSignificantWords(text) {
+  return (text || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length >= 4 && !STOPWORDS.has(w));
+}
+
+function checkSameTopic(items) {
+  // Signal 1 — tag agreement
+  const tags = [...new Set(items.map(s => s.tag || 'Other'))];
+  const sameTag = tags.length === 1;
+
+  // Signal 2 — word overlap between each pair of titles/queries
+  const wordSets = items.map(s => new Set(getSignificantWords(s.query)));
+  let pairCount = 0;
+  let overlapCount = 0;
+
+  for (let i = 0; i < wordSets.length; i++) {
+    for (let j = i + 1; j < wordSets.length; j++) {
+      pairCount++;
+      const a = wordSets[i], b = wordSets[j];
+      let shared = 0;
+      a.forEach(w => { if (b.has(w)) shared++; });
+      const smaller = Math.min(a.size, b.size) || 1;
+      if (shared / smaller >= 0.2) overlapCount++; // ≥20% shared words = related
+    }
+  }
+
+  const wordsAgree = pairCount === 0 || overlapCount === pairCount;
+
+  // Block only when BOTH signals say "different topics" —
+  // this avoids false positives when tags differ but topic is genuinely related,
+  // or when tags match but text is unrelated (e.g. both tagged "Other").
+  if (!sameTag && !wordsAgree) return false;
+  return true;
+}
+
 /* ── COMBINE ACTION ─────────────────────── */
 async function doCombine() {
   if (selectedItems.size < 2) {
     showToast('Select at least 2 searches to combine', 'error');
+    return;
+  }
+
+  const itemsForCheck = [...selectedItems.values()];
+  if (!checkSameTopic(itemsForCheck)) {
+    showToast('These searches look like different topics. Please select searches about the same topic to combine.', 'error');
     return;
   }
 
@@ -657,8 +716,6 @@ async function doCombine() {
 
     if (!res.ok) {
       showToast(data.error || 'Combine failed — try again', 'error');
-      btn.disabled  = false;
-      btn.innerHTML = originalHTML;
       return;
     }
 
@@ -672,6 +729,11 @@ async function doCombine() {
   } catch (err) {
     console.error('[Recall AI] Combine error:', err);
     showToast('Network error — is the backend running?', 'error');
+  } finally {
+    // ALWAYS restore the button — whether combine succeeded, failed,
+    // hit a 401, or threw a network error. Without this, the button
+    // stays stuck on "Combining…" after the first use and blocks
+    // every future combine until the page is refreshed.
     btn.disabled  = false;
     btn.innerHTML = originalHTML;
   }
