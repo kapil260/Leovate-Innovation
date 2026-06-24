@@ -9,20 +9,31 @@
 
 'use strict';
 
-const BACKEND_URL = 'https://leovate-innovation-3.onrender.com';
+const BACKEND_URL = 'http://localhost:5000';
 
-/* ── Recent query cache (dedup within 60 seconds per query) ─── */
+/* ── Recent query cache (dedup within 60 seconds, PER SOURCE) ──
+   BUG FIX: the key previously did NOT include the source platform.
+   That meant searching the same text on ChatGPT and then on Gemini
+   within 60 seconds caused the SECOND platform's save to be silently
+   dropped here as a "duplicate" — even though content.js correctly
+   treats same-text-different-platform as two separate, valid saves.
+   This was the root cause of "sometimes ChatGPT saves but Gemini
+   doesn't, or vice versa." Including `source` in the key fixes it. */
 const recentlySaved = new Map();
 
-function isDuplicate(query) {
-  const key = query.toLowerCase().slice(0, 100);
+function dedupKey(query, source) {
+  return (source || 'Unknown').toLowerCase() + '::' + query.toLowerCase().slice(0, 100);
+}
+
+function isDuplicate(query, source) {
+  const key = dedupKey(query, source);
   const lastSaved = recentlySaved.get(key);
   if (!lastSaved) return false;
   return (Date.now() - lastSaved) < 60_000;
 }
 
-function markSaved(query) {
-  const key = query.toLowerCase().slice(0, 100);
+function markSaved(query, source) {
+  const key = dedupKey(query, source);
   recentlySaved.set(key, Date.now());
   if (recentlySaved.size > 200) {
     const oldestKey = recentlySaved.keys().next().value;
@@ -73,16 +84,40 @@ async function flushQueue(token) {
   console.log(`[Recall AI BG] Flush complete. ${queue.length - remaining.length} synced, ${remaining.length} remaining.`);
 }
 
+/* ── fetch with timeout ─────────────────────────────────────────
+   A slow/hanging response (e.g. the service worker was just woken
+   up by Chrome and the network stack is still warming up) used to
+   hang forever with no timeout, occasionally outliving the message
+   port back to content.js — the save would then silently vanish
+   with no error and no queue entry. A hard timeout turns that into
+   a normal "treat as failed, queue it" case instead. */
+async function fetchWithTimeout(url, options, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /* ── Save query to backend ──────────────────────────────────── */
 // `content` is the full AI response text captured from the page.
 // Passing it to the backend lets Groq AI write a proper multi-paragraph
 // summary of the actual response instead of just the query.
-async function saveQuery(query, source, content = '') {
+//
+// RELIABILITY FIX: this now retries once on a transient failure
+// (timeout / network hiccup / worker just woke up) before falling
+// back to the offline queue. This was the second cause of saves
+// "randomly" not happening on one platform — a momentary delay
+// right as the MV3 service worker spun back up from idle was being
+// treated as a permanent failure on the first attempt.
+async function saveQuery(query, source, content = '', _isRetry = false) {
   if (!query || query.trim().length < 3) {
     return { ok: false, error: 'Query too short' };
   }
 
-  if (isDuplicate(query)) {
+  if (isDuplicate(query, source)) {
     return { ok: false, error: 'Duplicate (already saved recently)' };
   }
 
@@ -94,7 +129,7 @@ async function saveQuery(query, source, content = '') {
   }
 
   try {
-    const response = await fetch(`${BACKEND_URL}/api/searches/save`, {
+    const response = await fetchWithTimeout(`${BACKEND_URL}/api/searches/save`, {
       method:  'POST',
       headers: {
         'Content-Type':  'application/json',
@@ -103,9 +138,9 @@ async function saveQuery(query, source, content = '') {
       body: JSON.stringify({
         query:   query.trim(),
         source:  source || 'Unknown',
-        content: (content || '').trim()   // ← NEW: pass full response text
+        content: (content || '').trim()
       })
-    });
+    }, 8000);
 
     if (response.status === 401) {
       await chrome.storage.local.remove(['recall_token', 'recall_user']);
@@ -115,8 +150,18 @@ async function saveQuery(query, source, content = '') {
     const data = await response.json().catch(() => ({}));
 
     if (response.ok) {
-      markSaved(query);
+      markSaved(query, source);
       console.log(`[Recall AI BG] Saved: "${query.substring(0, 60)}" (${source}) → ${data.search?.tag}`);
+
+      // ── Increment recallUsage.searches in local storage ───────
+      // subscription.js reads this to show live stats on the Usage page.
+      chrome.storage.local.get(['recallUsage'], (stored) => {
+        const usage = stored.recallUsage || { searches: 0, apiCalls: 0, storageMb: 0, exports: 0 };
+        usage.searches  = (usage.searches  || 0) + 1;
+        usage.apiCalls  = (usage.apiCalls  || 0) + 2;   // save + Gemini AI call
+        usage.storageMb = (usage.storageMb || 0) + 0.008; // ~8 KB per entry
+        chrome.storage.local.set({ recallUsage: usage });
+      });
 
       // Flush any previously queued items now that backend is reachable
       flushQueue(token).catch(() => {});
@@ -127,10 +172,19 @@ async function saveQuery(query, source, content = '') {
     }
 
   } catch (err) {
+    // Timeout (AbortError) or network error.
+    // Retry exactly once before giving up and queuing — covers the
+    // common case where the service worker was waking up from idle
+    // and the very first request stalled.
+    if (!_isRetry) {
+      console.warn(`[Recall AI BG] First attempt failed for "${query.substring(0, 40)}" (${source}) — retrying once…`);
+      return saveQuery(query, source, content, true);
+    }
+
     // ── OFFLINE: queue the save for later ────────────────────
-    console.warn(`[Recall AI BG] Backend unreachable — queuing: "${query.substring(0, 60)}"`);
+    console.warn(`[Recall AI BG] Backend unreachable after retry — queuing: "${query.substring(0, 60)}" (${source})`);
     await addToQueue(query.trim(), source || 'Unknown', content || '');
-    markSaved(query); // prevent dedup-spamming the queue
+    markSaved(query, source); // prevent dedup-spamming the queue
     return { ok: false, queued: true, error: 'Backend offline — saved to queue' };
   }
 }
@@ -155,6 +209,13 @@ async function triggerExport(format = 'json') {
     a.download = `recall-ai-export-${Date.now()}.${format}`;
     a.click();
     URL.revokeObjectURL(url);
+
+    // ── Increment recallUsage.exports ─────────────────────────
+    chrome.storage.local.get(['recallUsage'], (stored) => {
+      const usage = stored.recallUsage || { searches: 0, apiCalls: 0, storageMb: 0, exports: 0 };
+      usage.exports = (usage.exports || 0) + 1;
+      chrome.storage.local.set({ recallUsage: usage });
+    });
 
     return { ok: true };
   } catch (err) {
