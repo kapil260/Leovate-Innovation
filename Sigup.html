@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="signup.css">
+  <script src="../setting-page/theme.js"></script>
+  <link rel="stylesheet" href="../theme-vars.css">
   <style>
     /* ── OTP step styles ── */
     #step2 { display: none; }
@@ -23,12 +25,12 @@
     .otp-row    { display: flex; gap: 10px; justify-content: center; margin: 20px 0 6px; }
     .otp-box    {
       width: 44px; height: 52px; border-radius: 12px; border: 1.5px solid var(--border);
-      background: rgba(255,255,255,0.04); color: var(--text-primary);
+      background: rgba(31,58,96,0.04); color: var(--text-primary);
       font-size: 22px; font-weight: 700; text-align: center; outline: none;
       font-family: var(--font-display); transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .otp-box:focus  { border-color: var(--accent-blue); box-shadow: 0 0 0 3px rgba(159,167,255,0.15); }
-    .otp-box.filled { border-color: rgba(159,167,255,0.4); }
+    .otp-box:focus  { border-color: var(--accent-blue); box-shadow: 0 0 0 3px rgba(244,162,97,0.15); }
+    .otp-box.filled { border-color: rgba(244,162,97,0.4); }
     .otp-box.otp-err { border-color: var(--error) !important; animation: shake 0.35s ease; }
     @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-5px)} 60%{transform:translateX(5px)} }
 
