@@ -14,11 +14,10 @@
 /* ── CONFIG ─────────────────────────────── */
 const BACKEND_URL = 'http://localhost:5000';
 const API = {
-  history:  `${BACKEND_URL}/api/searches/`,
-  search:   `${BACKEND_URL}/api/searches/?q=`,
-  delete:   `${BACKEND_URL}/api/searches/`,
-  combine:  `${BACKEND_URL}/api/searches/combine`,
-  combined: `${BACKEND_URL}/api/searches/combined`,
+  history: `${BACKEND_URL}/api/searches/`,
+  search:  `${BACKEND_URL}/api/searches/?q=`,
+  delete:  `${BACKEND_URL}/api/searches/`,
+  combine: `${BACKEND_URL}/api/searches/combine`,
 };
 
 /* ── AUTH ────────────────────────────────── */
@@ -626,191 +625,10 @@ function closeCombinedModal() {
   document.getElementById('combinedOverlay').classList.remove('open');
 }
 
-/* ── SAVED COMBINED SUMMARIES LIST ────────
-   Loads every combined summary the user has previously generated
-   (GET /api/searches/combined) and renders them as a clickable
-   list. Clicking one reopens it in the same modal used right
-   after combining. */
-
-let cachedCombinedList = [];
-
-async function loadCombinedList() {
-  const body = document.getElementById('combinedListBody');
-  body.innerHTML = '<p style="color:rgba(255,255,255,0.4);text-align:center;padding:20px 0;">Loading…</p>';
-
-  try {
-    const res = await fetch(API.combined, { headers: await authHeaders() });
-    if (res.status === 401) { logout(); return; }
-
-    const data = await res.json();
-    if (!res.ok) {
-      body.innerHTML = `<p style="color:#f87171;text-align:center;padding:20px 0;">${escHtml(data.error || 'Could not load combined summaries.')}</p>`;
-      return;
-    }
-
-    cachedCombinedList = data.combined || [];
-    renderCombinedList();
-
-  } catch (err) {
-    console.error('[Recall AI] Load combined list error:', err);
-    body.innerHTML = '<p style="color:#f87171;text-align:center;padding:20px 0;">Network error — is the backend running?</p>';
-  }
-}
-
-function renderCombinedList() {
-  const body = document.getElementById('combinedListBody');
-
-  if (cachedCombinedList.length === 0) {
-    body.innerHTML = `<p style="color:rgba(255,255,255,0.4);text-align:center;padding:24px 0;">
-      No combined summaries yet.<br>Select 2+ related searches and tap "Combine & Summarize" to create one.
-    </p>`;
-    return;
-  }
-
-  body.innerHTML = cachedCombinedList.map(item => {
-    const platforms = (item.platforms || []).map(p =>
-      `<span class="cb-platform" style="background:${sourceColor(p)}22;color:${sourceColor(p)};border:1px solid ${sourceColor(p)}44">${escHtml(p)}</span>`
-    ).join('');
-
-    const dateStr = item.created_at
-      ? new Date(item.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-      : '';
-
-    return `
-      <div class="hi-row combined-list-row" data-id="${escHtml(item.id)}" style="cursor:pointer;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
-          <div style="flex:1;min-width:0;">
-            <div style="font-weight:600;font-size:14px;color:#fff;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-              ${escHtml(item.topic || 'Combined Summary')}
-            </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px;">${platforms}</div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.4);">${item.search_count || 0} sources · ${dateStr}</div>
-          </div>
-          <button class="combined-list-delete" data-id="${escHtml(item.id)}" title="Delete" style="background:none;border:none;color:rgba(255,255,255,0.35);cursor:pointer;padding:4px;flex-shrink:0;">✕</button>
-        </div>
-      </div>`;
-  }).join('');
-
-  // Click a row → reopen its combined summary in the main modal
-  document.querySelectorAll('.combined-list-row').forEach(row => {
-    row.addEventListener('click', (e) => {
-      if (e.target.closest('.combined-list-delete')) return; // don't open when deleting
-      const id = row.getAttribute('data-id');
-      // data-id from the DOM is always a string, but item.id from the API
-      // is a number (BIGSERIAL) — use == instead of === so "6" matches 6.
-      const item = cachedCombinedList.find(c => String(c.id) === String(id));
-      if (!item) return;
-
-      closeCombinedListPanel();
-      openCombinedModal({
-        topic:           item.topic,
-        combinedSummary: item.combined_summary,
-        platforms:       item.platforms,
-        searchCount:     item.search_count
-      });
-    });
-  });
-
-  // Delete button on each row
-  document.querySelectorAll('.combined-list-delete').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const id = btn.getAttribute('data-id');
-      if (!confirm('Delete this combined summary? This cannot be undone.')) return;
-
-      try {
-        const res = await fetch(`${API.combined}/${id}`, {
-          method:  'DELETE',
-          headers: await authHeaders()
-        });
-        if (res.status === 401) { logout(); return; }
-        if (!res.ok) {
-          const data = await res.json();
-          showToast(data.error || 'Could not delete — try again', 'error');
-          return;
-        }
-        cachedCombinedList = cachedCombinedList.filter(c => String(c.id) !== String(id));
-        renderCombinedList();
-        showToast('Combined summary deleted');
-      } catch (err) {
-        console.error('[Recall AI] Delete combined error:', err);
-        showToast('Network error — is the backend running?', 'error');
-      }
-    });
-  });
-}
-
-function openCombinedListPanel() {
-  document.getElementById('combinedListOverlay').classList.add('open');
-  loadCombinedList();
-}
-function closeCombinedListPanel() {
-  document.getElementById('combinedListOverlay').classList.remove('open');
-}
-
-/* ── TOPIC SIMILARITY CHECK ───────────────
-   Prevents combining unrelated searches (e.g. "Poco X5 5G Phone" +
-   "Bollywood Thriller Movies"). Uses two signals:
-     1. Tag match — if items don't share the same category tag,
-        they're almost certainly different topics.
-     2. Word overlap — compares significant words (4+ letters,
-        common stopwords removed) between query/title text.
-   If both signals disagree, the combine is blocked. */
-
-const STOPWORDS = new Set([
-  'what','is','the','are','this','that','with','from','about','for',
-  'and','best','top','how','does','can','will','your','you','have',
-  'has','was','were','which','who','where','when','why','list','some'
-]);
-
-function getSignificantWords(text) {
-  return (text || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .split(/\s+/)
-    .filter(w => w.length >= 4 && !STOPWORDS.has(w));
-}
-
-function checkSameTopic(items) {
-  // Signal 1 — tag agreement
-  const tags = [...new Set(items.map(s => s.tag || 'Other'))];
-  const sameTag = tags.length === 1;
-
-  // Signal 2 — word overlap between each pair of titles/queries
-  const wordSets = items.map(s => new Set(getSignificantWords(s.query)));
-  let pairCount = 0;
-  let overlapCount = 0;
-
-  for (let i = 0; i < wordSets.length; i++) {
-    for (let j = i + 1; j < wordSets.length; j++) {
-      pairCount++;
-      const a = wordSets[i], b = wordSets[j];
-      let shared = 0;
-      a.forEach(w => { if (b.has(w)) shared++; });
-      const smaller = Math.min(a.size, b.size) || 1;
-      if (shared / smaller >= 0.2) overlapCount++; // ≥20% shared words = related
-    }
-  }
-
-  const wordsAgree = pairCount === 0 || overlapCount === pairCount;
-
-  // Block only when BOTH signals say "different topics" —
-  // this avoids false positives when tags differ but topic is genuinely related,
-  // or when tags match but text is unrelated (e.g. both tagged "Other").
-  if (!sameTag && !wordsAgree) return false;
-  return true;
-}
-
 /* ── COMBINE ACTION ─────────────────────── */
 async function doCombine() {
   if (selectedItems.size < 2) {
     showToast('Select at least 2 searches to combine', 'error');
-    return;
-  }
-
-  const itemsForCheck = [...selectedItems.values()];
-  if (!checkSameTopic(itemsForCheck)) {
-    showToast('These searches look like different topics. Please select searches about the same topic to combine.', 'error');
     return;
   }
 
@@ -839,6 +657,8 @@ async function doCombine() {
 
     if (!res.ok) {
       showToast(data.error || 'Combine failed — try again', 'error');
+      btn.disabled  = false;
+      btn.innerHTML = originalHTML;
       return;
     }
 
@@ -852,11 +672,6 @@ async function doCombine() {
   } catch (err) {
     console.error('[Recall AI] Combine error:', err);
     showToast('Network error — is the backend running?', 'error');
-  } finally {
-    // ALWAYS restore the button — whether combine succeeded, failed,
-    // hit a 401, or threw a network error. Without this, the button
-    // stays stuck on "Combining…" after the first use and blocks
-    // every future combine until the page is refreshed.
     btn.disabled  = false;
     btn.innerHTML = originalHTML;
   }
@@ -1140,18 +955,6 @@ function init() {
   // ── Combined modal close ─────────────────
   const cmClose = document.getElementById('cmClose');
   if (cmClose) cmClose.addEventListener('click', closeCombinedModal);
-
-  // ── Saved combined summaries panel ───────
-  const viewCombinedBtn = document.getElementById('viewCombinedBtn');
-  if (viewCombinedBtn) viewCombinedBtn.addEventListener('click', openCombinedListPanel);
-
-  const cmListClose = document.getElementById('cmListClose');
-  if (cmListClose) cmListClose.addEventListener('click', closeCombinedListPanel);
-
-  const combinedListOverlay = document.getElementById('combinedListOverlay');
-  if (combinedListOverlay) combinedListOverlay.addEventListener('click', (e) => {
-    if (e.target === combinedListOverlay) closeCombinedListPanel();
-  });
 
   // Copy combined summary
   const cmCopy = document.getElementById('cmCopy');
