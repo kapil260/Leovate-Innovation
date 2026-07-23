@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Insights &amp; Credits — Recall AI</title>
+  <script src="../setting-page/theme.js"></script>
+  <link rel="stylesheet" href="../theme-vars.css">
+  <link rel="stylesheet" href="insights.css">
+  <style>
+    a, button, input, select, h1, h2, h3, h4, h5, * {
+      box-sizing: border-box; margin: 0; padding: 0; border: none;
+      text-decoration: none; background: none; -webkit-font-smoothing: antialiased;
+    }
+    menu, ol, ul { list-style-type: none; margin: 0; padding: 0; }
+  </style>
+</head>
+<body>
+<div class="insights-recall-ai">
+  <div class="main-canvas">
+
+    <!-- ── HEADER ── -->
+    <div class="ins-header-top-app-bar">
+      <div class="ins-header-left">
+        <div class="ins-header-icon">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>
+          </svg>
+        </div>
+        <div class="ins-header-titles">
+          <div class="ins-header-title">Insights &amp; Credits</div>
+          <div class="ins-header-subtitle">Your search patterns &amp; AI platform usage</div>
+        </div>
+      </div>
+      <div class="ins-header-right">
+        <div class="ins-range-toggle" id="rangeToggle">
+          <button class="ins-range-btn" data-range="today">Today</button>
+          <button class="ins-range-btn active" data-range="week">Week</button>
+          <button class="ins-range-btn" data-range="month">Month</button>
+        </div>
+        <div class="ins-live-badge"><span class="ins-live-dot"></span>Live</div>
+      </div>
+    </div>
+
+    <!-- ── SECTION ── -->
+    <div class="ins-section">
+
+      <!-- Search Insights label -->
+      <div class="ins-eyebrow-row">
+        <div class="ins-eyebrow">
+          <span class="ins-eyebrow-dot"></span>SEARCH INSIGHTS
+        </div>
+        <div class="ins-total-tracked">Total tracked: <span id="totalTracked">—</span></div>
+      </div>
+
+      <!-- 3 stat cards -->
+      <div class="ins-stat-grid">
+        <div class="ins-stat-card" style="--stat-accent:#C97A3F;">
+          <div class="ins-stat-top">
+            <div class="ins-stat-icon" style="background:rgba(201,122,63,0.12); color:#C97A3F;">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+            </div>
+            <div class="ins-stat-pill">Today</div>
+          </div>
+          <div class="ins-stat-value" id="statToday">—</div>
+          <div class="ins-stat-label">SEARCHES TODAY</div>
+          <div class="ins-stat-sub" id="statTodaySub">Since midnight</div>
+          <div class="ins-stat-bars" id="barsToday" title="Click a day to see that day's insight"></div>
+          <div class="ins-stat-daylabels" id="daylabelsToday"></div>
+        </div>
+
+        <div class="ins-stat-card" style="--stat-accent:#5B7FBE;">
+          <div class="ins-stat-top">
+            <div class="ins-stat-icon" style="background:rgba(91,127,190,0.12); color:#5B7FBE;">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+            </div>
+            <div class="ins-stat-pill ins-stat-pill-up" id="statWeekDelta">—</div>
+          </div>
+          <div class="ins-stat-value" id="statWeek">—</div>
+          <div class="ins-stat-label">THIS WEEK</div>
+          <div class="ins-stat-sub" id="statWeekSub">vs. last week</div>
+          <div class="ins-stat-bars" id="barsWeek" title="Click a week to see that week's insight"></div>
+          <div class="ins-stat-daylabels" id="daylabelsWeek"></div>
+        </div>
+
+        <div class="ins-stat-card" style="--stat-accent:#2F9E64;">
+          <div class="ins-stat-top">
+            <div class="ins-stat-icon" style="background:rgba(47,158,100,0.12); color:#2F9E64;">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+              </svg>
+            </div>
+            <div class="ins-stat-pill ins-stat-pill-up" id="statMonthDelta">—</div>
+          </div>
+          <div class="ins-stat-value" id="statMonth">—</div>
+          <div class="ins-stat-label">THIS MONTH</div>
+          <div class="ins-stat-sub" id="statMonthSub">vs. last month</div>
+          <div class="ins-stat-bars" id="barsMonth" title="Click a month to see that month's insight"></div>
+          <div class="ins-stat-daylabels" id="daylabelsMonth"></div>
+        </div>
+      </div>
+
+      <!-- Search Frequency + By Category -->
+      <div class="ins-freq-grid">
+        <div class="ins-card ins-freq-card">
+          <div class="ins-freq-header">
+            <div>
+              <div class="ins-card-title">Search Frequency</div>
+              <div class="ins-card-subtitle">Daily search volume — last 7 days</div>
+            </div>
+            <div class="ins-freq-legend">
+              <span class="ins-legend-item"><span class="ins-legend-dot" style="background:#C97A3F;"></span>Today</span>
+              <span class="ins-legend-item"><span class="ins-legend-dot" style="background:#E5DFD3;"></span>Previous</span>
+            </div>
+          </div>
+          <div class="ins-freq-chart" id="freqChart"></div>
+        </div>
+
+        <div class="ins-card ins-category-card">
+          <div class="ins-card-title">By Category</div>
+          <div class="ins-category-list" id="categoryList"></div>
+        </div>
+      </div>
+
+      <!-- AI Platform Credits -->
+      <div class="ins-eyebrow-row" style="margin-top:8px;">
+        <div class="ins-eyebrow"><span class="ins-eyebrow-dot"></span>AI PLATFORM CREDITS</div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div class="ins-day-filter-chip" id="dayFilterChip"></div>
+          <div class="ins-plan-badge" id="planBadge">FREE PLAN</div>
+        </div>
+      </div>
+
+      <div class="ins-platform-grid" id="platformGrid">
+        <!-- Platform cards injected by JS -->
+      </div>
+
+      <!-- All Platforms -->
+      <div class="ins-eyebrow-row" style="margin-top:8px;">
+        <div class="ins-eyebrow"><span class="ins-eyebrow-dot"></span>ALL PLATFORMS</div>
+      </div>
+
+      <div class="ins-card ins-breakdown-card">
+        <div class="ins-breakdown-header">
+          <div>
+            <div class="ins-card-title">Platform Usage Breakdown</div>
+            <div class="ins-card-subtitle">Searches captured per AI platform</div>
+          </div>
+          <button class="ins-refresh-btn" id="refreshBtn">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+              <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+            Refresh
+          </button>
+        </div>
+        <table class="ins-table">
+          <thead>
+            <tr>
+              <th>PLATFORM</th>
+              <th>USAGE</th>
+              <th>SEARCHES</th>
+              <th>LAST USED</th>
+              <th>STATUS</th>
+            </tr>
+          </thead>
+          <tbody id="breakdownBody">
+            <!-- rows injected by JS -->
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="aside-side-nav-bar">
+    <div class="margin2">
+      <div class="container32">
+        <img class="background3" src="../dashboard-page/background3.png" alt="Recall AI Logo" />
+        <div class="container33">
+          <div class="heading-1"><div class="recall-ai">Recall AI</div></div>
+          <div class="container11"><div class="text12">COGNITIVE ETHER V1.0</div></div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <a class="link nav-link" href="../dashboard-page/dashboard.html" data-page="dashboard">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+          <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+        </svg>
+        <div class="container7"><div class="text14">DASHBOARD</div></div>
+      </a>
+      <a class="link nav-link" href="../history-page/history.html" data-page="history">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <polyline points="12 8 12 12 14 14"/>
+          <path d="M3.05 11a9 9 0 1 1 .5 4m-.5 5v-5h5"/>
+        </svg>
+        <div class="container7"><div class="text14">HISTORY</div></div>
+      </a>
+      <div class="link-active-tab-dashboard-css-transform">
+        <a class="link-active-tab-dashboard nav-link" href="insights.html" data-page="insights">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>
+          </svg>
+          <div class="container7"><div class="text13">INSIGHTS</div></div>
+        </a>
+      </div>
+      <a class="link nav-link" href="../profile-page/profile.html" data-page="profile">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+        </svg>
+        <div class="container7"><div class="text14">PROFILE</div></div>
+      </a>
+      <a class="link nav-link" href="../setting-page/setting.html" data-page="settings">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        <div class="container7"><div class="text14">SETTINGS</div></div>
+      </a>
+      <a class="link nav-link" href="../subscription-page/subscription.html" data-page="subscription">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.86L12 17.77l-6.18 3.23L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+        <div class="container7"><div class="text14">SUBSCRIPTION</div></div>
+      </a>
+    </nav>
+
+    <div class="margin3">
+      <div class="background-border8 profile-card-clickable" id="profileCard" role="button" tabindex="0" title="View profile" style="cursor:pointer;">
+        <div class="container37">
+          <div class="user-avatar user-avatar-initials" id="sidebarAvatar" aria-hidden="true">
+            <span id="sidebarInitials" style="font-size:15px;font-weight:800;color:#FFFFFF;line-height:1;letter-spacing:-0.5px;">--</span>
+          </div>
+          <div class="container7" style="flex:1;min-width:0;">
+            <div class="container11">
+              <div class="ronik-thapa" id="userName" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Loading…</div>
+            </div>
+            <div class="user-role" id="userEmailDisplay" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div>
+          </div>
+          <svg width="14" height="14" fill="none" stroke="#55688A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- Toast -->
+<div class="ins-toast" id="toast" role="status" aria-live="polite">
+  <span id="toastIcon"></span><span id="toastMsg"></span>
+</div>
+
+<script src="insights.js"></script>
+</body>
+</html>
