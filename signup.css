@@ -17,19 +17,19 @@ menu, ol, ul {
 
 /* ── CSS VARIABLES ── */
 :root {
-  --bg:             #060e20;
-  --surface:        rgba(25, 37, 64, 0.45);
-  --border:         rgba(64, 72, 93, 0.3);
-  --border-card:    rgba(64, 72, 93, 0.25);
-  --text-primary:   #dee5ff;
-  --text-secondary: #a3aac4;
-  --text-muted:     #6d758c;
-  --accent-blue:    #9fa7ff;
-  --accent-teal:    #c6fff3;
-  --placeholder:    rgba(64, 72, 93, 0.5);
-  --btn-text:       #101b8b;
-  --error:          #ff6b6b;
-  --success:        #6bffb8;
+  --bg:             #EDE9E1;
+  --surface:        rgba(237,233,225, 0.6);
+  --border:         rgba(203,216,230, 0.3);
+  --border-card:    rgba(203,216,230, 0.25);
+  --text-primary:   #1F3A60;
+  --text-secondary: #7C93B3;
+  --text-muted:     #55688A;
+  --accent-blue:    #F4A261;
+  --accent-teal:    #FBEAD9;
+  --placeholder:    rgba(203,216,230, 0.5);
+  --btn-text:       #C97A3F;
+  --error:          #D6484A;
+  --success:        #3FAE7A;
 
   --radius-card:    36px;
   --radius-btn:     9999px;
@@ -77,9 +77,9 @@ body {
   inset: 0;
   background: linear-gradient(
     135deg,
-    rgba(30, 27, 75, 0.4) 0%,
-    rgba(6, 14, 32, 1)    50%,
-    rgba(8, 51, 68, 0.2)  100%
+    rgba(234,239,245, 0.4) 0%,
+    rgba(237,233,225, 1)    50%,
+    rgba(234,239,245, 0.2)  100%
   );
 }
 
@@ -90,7 +90,7 @@ body {
   width: min(500px, 50vw);
   height: min(500px, 50vw);
   border-radius: 9999px;
-  background: rgba(159, 167, 255, 0.1);
+  background: rgba(244,162,97, 0.1);
   filter: blur(60px);
 }
 
@@ -101,7 +101,7 @@ body {
   width: min(400px, 40vw);
   height: min(400px, 40vw);
   border-radius: 9999px;
-  background: rgba(198, 255, 243, 0.1);
+  background: rgba(251,234,217, 0.1);
   filter: blur(50px);
 }
 
@@ -113,7 +113,7 @@ body {
   top: 24px;
   left: 50%;
   transform: translateX(-50%) translateY(-100px);
-  background: rgba(25, 37, 64, 0.95);
+  background: rgba(255,255,255, 0.95);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border-card);
@@ -132,11 +132,11 @@ body {
 }
 
 .toast.toast--success {
-  border-color: rgba(107, 255, 184, 0.3);
+  border-color: rgba(63,174,122, 0.3);
 }
 
 .toast.toast--error {
-  border-color: rgba(255, 107, 107, 0.3);
+  border-color: rgba(214,72,74, 0.3);
 }
 
 .toast-icon {
@@ -246,7 +246,7 @@ body {
 
 /* Stats */
 .stats {
-  border-top: 1px solid rgba(64, 72, 93, 0.25);
+  border-top: 1px solid rgba(203,216,230, 0.25);
   padding-top: 28px;
   display: flex;
   gap: 48px;
@@ -292,7 +292,7 @@ body {
   position: relative;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 25px 50px -12px rgba(31,58,96, 0.35);
   overflow: hidden;
   animation: fadeUp 0.7s 0.12s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -317,7 +317,7 @@ body {
   width: 200px;
   height: 200px;
   border-radius: 9999px;
-  background: rgba(198, 255, 243, 0.08);
+  background: rgba(251,234,217, 0.08);
   filter: blur(40px);
   pointer-events: none;
 }
@@ -439,7 +439,7 @@ body {
 /* ── Submit Button ── */
 .btn-submit {
   width: 100%;
-  background: linear-gradient(90deg, var(--accent-blue) 0%, #8d98ff 100%);
+  background: linear-gradient(90deg, var(--accent-blue) 0%, #F7B47D 100%);
   border-radius: var(--radius-btn);
   padding: 16px;
   color: var(--btn-text);
@@ -460,7 +460,7 @@ body {
 .btn-submit:hover:not(:disabled) {
   opacity: 0.92;
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(159, 167, 255, 0.35);
+  box-shadow: 0 8px 24px rgba(244,162,97, 0.35);
 }
 
 .btn-submit:active:not(:disabled) {
@@ -476,7 +476,7 @@ body {
 .spinner {
   width: 18px;
   height: 18px;
-  border: 2px solid rgba(16, 27, 139, 0.3);
+  border: 2px solid rgba(201,122,63, 0.3);
   border-top-color: var(--btn-text);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
