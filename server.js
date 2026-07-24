@@ -18,7 +18,7 @@ app.use(cors({
   methods: ["GET", "POST", "PATCH", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 
 // ── ROUTES ────────────────────────────────────────────────────
 app.use("/api/auth",     authRoutes);
@@ -53,6 +53,8 @@ app.get("/", (req, res) => {
         getAll:      "GET    /api/searches/",
         stats:       "GET    /api/searches/stats",
         insight:     "GET    /api/searches/insight",
+        semanticSearch: "GET  /api/searches/semantic-search?q=",
+        embedAll:    "POST   /api/searches/embed-all",
         delete:      "DELETE /api/searches/:id",
         share:       "PATCH  /api/searches/:id/share",
         unshare:     "PATCH  /api/searches/:id/unshare",
