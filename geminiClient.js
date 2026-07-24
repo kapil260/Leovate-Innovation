@@ -199,6 +199,8 @@ Rules:
 - Each key point should be 1-2 sentences and cover one important idea, message, or fact.
 - If there are any memorable quotes in the content, include them on their own line.
 - All quotes MUST be wrapped in double asterisks like: **"Quote text here."**
+- Within the intro sentence and within each key point, wrap ONLY the 1-2 most important words or phrases in double asterisks — e.g. a name, date, number, title, or standout fact (e.g. **Narayan Gopal**, **February 2, 1938**). Do NOT wrap the whole sentence or the whole bullet point — only the specific important word(s) or short phrase.
+- If any content includes a mathematical formula, equation, or key numeric result, wrap that exact formula/number in double asterisks so it stands out (e.g. **E = mc²**, **42%**).
 - Do NOT use any markdown headers (##) or numbered lists.
 - Write in a dignified, engaging tone appropriate for the subject.
 - Do NOT start with "This", "The user", "This query".
@@ -234,7 +236,9 @@ Rules:
 - Cover the most important points from the full content provided.
 - Do NOT start with "This", "The user", "This query", or "This search".
 - Do NOT use bullet points or numbered lists — write in flowing prose.
-- Do NOT use any markdown formatting like ** or ##.
+- In each sentence, wrap ONLY the 1-2 most important words or phrases in double asterisks — e.g. a key term, name, date, number, or standout fact (e.g. **machine learning**, **1969**, **42%**). Do NOT wrap whole sentences — only the specific important word(s) or short phrase per sentence.
+- If the content includes a mathematical formula, equation, or key numeric result, wrap that exact formula/number in double asterisks so it stands out (e.g. **E = mc²**).
+- Do NOT use markdown headers (##).
 - Speak directly about the topic itself.
 - End without any trailing question or prompt.
 Reply with ONLY the summary paragraphs. Nothing else.`;
@@ -311,7 +315,7 @@ OUTPUT FORMAT (follow exactly):
 1. Write 1 to 2 short paragraphs of flowing prose that introduce and explain the topic, combining the overlapping core ideas from all sources into ONE coherent explanation (the "intersection" of what they all agree on, told simply).
 2. Leave one blank line.
 3. Then write 4 to 7 bullet points. Each bullet is ONE distinct, important, non-overlapping fact or takeaway (notable points that came from one or more sources). Each bullet starts with the character •
-4. In both the paragraphs and the bullets, wrap the 1-3 most important key terms per sentence in double asterisks, e.g. **photosynthesis**, **machine learning**.
+4. In both the paragraphs and the bullets, wrap the 1-3 most important key terms per sentence in double asterisks, e.g. **photosynthesis**, **machine learning**. If a source includes a mathematical formula, equation, or key numeric result, wrap that exact formula/number in double asterisks too (e.g. **E = mc²**, **42%**).
 5. Every sentence (in paragraphs AND bullets) must end with a citation in parentheses naming the platform(s) that contributed that idea, written right before the period, e.g. ...(ChatGPT) or ...(Claude)(Gemini). Use only these platform names when citing: ${platformList}.
 
 EXAMPLE SHAPE (style only — write fresh content for the real topic):
