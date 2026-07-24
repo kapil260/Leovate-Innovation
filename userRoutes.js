@@ -757,7 +757,7 @@ router.patch("/profile", protect, async (req, res) => {
         .select("id")
         .eq("email", email.toLowerCase())
         .neq("id", userId)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         return res.status(400).json({ error: "That email is already used by another account." });
@@ -784,11 +784,15 @@ router.patch("/profile", protect, async (req, res) => {
       .update(updates)
       .eq("id", userId)
       .select("id, username, email, phone, bio, location, display_name, timezone, language, github, twitter, linkedin, website, avatar_url, created_at")
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("Update profile DB error:", error.message);
       return res.status(500).json({ error: "Could not update profile. Please try again." });
+    }
+
+    if (!updatedUser) {
+      return res.status(401).json({ error: "Your session is out of date. Please log out and log back in, then try again." });
     }
 
     res.status(200).json({
